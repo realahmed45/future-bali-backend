@@ -6,7 +6,7 @@ const bodyParser = require("body-parser");
 
 const app = express();
 app.use(express.json());
-const PORT = 5000; // Backend server will run on this port
+const PORT = process.env.PORT || 5000; // Backend server will run on this port
 
 const EMAIL_USER = "awaiskhalique844@gmail.com";
 const EMAIL_PASS = "vilm ombh jjqu tyil";
