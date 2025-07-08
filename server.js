@@ -1,233 +1,127 @@
+// No need for dotenv since we're hardcoding everything
 const express = require("express");
-const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+const path = require("path");
+const authRoutes = require("./routes/auth");
+const cartRoutes = require("./routes/cart");
+const orderRoutes = require("./routes/orders");
+const contractRoutes = require("./routes/contracts");
 
 const app = express();
-app.use(express.json());
-const PORT = process.env.PORT || 5000; // Backend server will run on this port
+const PORT = 5000; // Hardcoded port
 
-const EMAIL_USER = "awaiskhalique844@gmail.com";
-const EMAIL_PASS = "vilm ombh jjqu tyil";
-
-// MongoDB URI
-const dbURI =
-  "mongodb+srv://realahmedali4:nrhdpOBM6jvWapzy@futurebali-cluster.cyora.mongodb.net/futurebali?retryWrites=true&w=majority&appName=futurebali-cluster";
-
-// MongoDB Connection
-mongoose
-  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch((err) => console.error("Error connecting to MongoDB:", err));
+// JWT Configuration (hardcoded)
+const JWT_SECRET = "my-super-secret-jwt-key-for-villa-investment-platform-2024";
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
-
-// User Schema
-const User = mongoose.model(
-  "User",
-  new mongoose.Schema({
-    name: String,
-    email: String,
-    occupation: String,
-    firstname: String,
-    lastname: String,
-    phone: String,
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// CardDetails Schema
-const CardDetails = mongoose.model(
-  "CardDetails",
-  new mongoose.Schema({
-    firstName: String,
-    lastName: String,
-    email: { type: String, unique: true },
-    phone: String,
-    country: String,
-    address: String,
-    additionalDetails: String,
-  })
-);
-
-// Endpoint for sending OTP
-app.post("/send-otp", async (req, res) => {
-  const { name, email } = req.body;
-
-  if (!name || !email) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Name and email are required." });
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (
+    req.body &&
+    Object.keys(req.body).length > 0 &&
+    req.path !== "/api/contracts/generate-and-send"
+  ) {
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
   }
-
-  // Generate a random 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  try {
-    let user = await User.findOne({ email });
-    let isNewUser = false;
-
-    if (!user) {
-      user = new User({ name, email, occupation: "" });
-      await user.save();
-      isNewUser = true;
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS,
-      },
-    });
-
-    const mailOptions = {
-      from: EMAIL_USER,
-      to: email,
-      subject: "Your OTP Code",
-      text: `Hi ${name},\n\nYour OTP code is: ${otp}\n\nThank you!`,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({
-      success: true,
-      otp,
-      user: { name: user.name, occupation: user.occupation, isNewUser },
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ success: false, message: "Failed to send OTP." });
-  }
+  next();
 });
 
-// Endpoint to check user
-app.post("/check-user", async (req, res) => {
-  const { name, email } = req.body;
-
-  try {
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      const previousName = existingUser.name;
-
-      if (previousName !== name) {
-        existingUser.name = name;
-        await existingUser.save();
-
-        return res.status(200).json({
-          exists: true,
-          updatedName: true,
-          message: `Your name has been updated from ${previousName} to ${name}.`,
-        });
-      } else {
-        return res.status(200).json({
-          exists: true,
-          updatedName: false,
-          message: `Welcome back, ${name}!`,
-        });
-      }
-    } else {
-      return res.status(200).json({
-        exists: false,
-        message: "New user registered successfully.",
-      });
+// MongoDB Connection (hardcoded)
+mongoose
+  .connect(
+    "mongodb+srv://realahmedali4:ggMfUxp9hkAGRG6D@cluster0000.f770vio.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0000",
+    {
+      useNewUrlParser: true,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      maxIdleTimeMS: 30000,
+      waitQueueTimeoutMS: 30000,
+      retryWrites: true,
+      retryReads: true,
     }
-  } catch (error) {
-    console.error("Error checking user:", error);
-    res.status(500).json({ success: false, message: "Error checking user" });
-  }
+  )
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    mongodb:
+      mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+  });
 });
 
-// Endpoint to update account details
-app.post("/update-account-details", async (req, res) => {
-  const { email, firstname, lastname, phone } = req.body;
+// Routes
+app.use("/api/auth", authRoutes(JWT_SECRET));
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/contracts", contractRoutes);
 
-  if (!email || !firstname || !lastname || !phone) {
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields are required." });
-  }
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
-    }
-
-    user.firstname = firstname;
-    user.lastname = lastname;
-    user.phone = phone;
-
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Account details updated successfully!",
-    });
-  } catch (error) {
-    console.error("Error updating account details:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update account details." });
-  }
+// Test endpoint to verify routes are working
+app.get("/api/test", (req, res) => {
+  res.json({
+    message: "Server is working!",
+    routes: {
+      auth: "/api/auth",
+      cart: "/api/cart",
+      orders: "/api/orders",
+      contracts: "/api/contracts",
+    },
+  });
 });
 
-// Create or Update Card Details
-app.post("/card-details", async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    country,
-    address,
-    additionalDetails,
-  } = req.body;
-
-  try {
-    const existingCard = await CardDetails.findOne({ email });
-
-    if (existingCard) {
-      existingCard.firstName = firstName;
-      existingCard.lastName = lastName;
-      existingCard.phone = phone;
-      existingCard.country = country;
-      existingCard.address = address;
-      existingCard.additionalDetails = additionalDetails;
-
-      await existingCard.save();
-      return res
-        .status(200)
-        .json({ message: "Card details updated successfully!" });
-    } else {
-      const newCard = new CardDetails({
-        firstName,
-        lastName,
-        email,
-        phone,
-        country,
-        address,
-        additionalDetails,
-      });
-
-      await newCard.save();
-      return res
-        .status(201)
-        .json({ message: "Card details added successfully!" });
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ message: "Internal server error", error });
+// Simple file upload endpoint for Base64
+app.post("/api/upload", (req, res) => {
+  const { file, fileName } = req.body;
+  if (!file) {
+    return res.status(400).json({ message: "No file provided" });
   }
+
+  // In a real app, you might want to store the Base64 string in your database
+  // Here we just return a mock response
+  res.json({
+    success: true,
+    filePath: `data:image/jpeg;base64,${file}`,
+  });
 });
 
-// Start the server
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Server error:", err);
+  res.status(500).json({
+    success: false,
+    message: err.message || "Internal server error",
+    stack: err.stack, // Always show stack trace
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Environment: development`);
 });
