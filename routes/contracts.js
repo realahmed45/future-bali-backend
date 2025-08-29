@@ -32,7 +32,8 @@ const addLogoToPage = (doc, pageNumber) => {
     .fillColor("black")
     .text("Furnished (1) Bed-Room basic", 400, 35);
 
-  doc.moveDown(2);
+  // Reset position to start content properly
+  doc.y = 80;
 };
 
 // Generate exact contract PDF matching the provided PDF
@@ -52,76 +53,107 @@ const generateContractPDF = (contractData) => {
       doc
         .fontSize(14)
         .fillColor("black")
-        .text("(Future life PT) My Future Life Bali: My Secret Home Bali", {
-          align: "center",
-        });
+        .text(
+          "(Future life PT) My Future Life Bali: My Secret Home Bali",
+          50,
+          80,
+          { align: "center", width: 495 }
+        );
       doc.moveDown();
       doc
         .fontSize(12)
         .fillColor("red")
-        .text("length of contract 23 years", { align: "center" });
+        .text("length of contract 23 years", 50, doc.y, {
+          align: "center",
+          width: 495,
+        });
       doc
         .fillColor("red")
-        .text("starting from : feb 1, 2025,", { align: "center" });
+        .text("starting from : feb 1, 2025,", 50, doc.y + 15, {
+          align: "center",
+          width: 495,
+        });
       doc
         .fillColor("red")
-        .text("Ending date : feb 30, 2048.", { align: "center" });
+        .text("Ending date : feb 30, 2048.", 50, doc.y + 30, {
+          align: "center",
+          width: 495,
+        });
       doc
         .fillColor("black")
-        .text("On this day …23 JANUARY 2025, the undersigned are:", {
-          align: "center",
-        });
-      doc.moveDown();
+        .text(
+          "On this day ...23 JANUARY 2025, the undersigned are:",
+          50,
+          doc.y + 45,
+          { align: "center", width: 495 }
+        );
+      doc.moveDown(3);
 
       // Villa price section
       doc
         .fillColor("red")
-        .text(`Villa price: $ ${contractData.totalAmount || 32000}`);
+        .text(`Villa price: $ ${contractData.totalAmount || 32000}`, 50);
       doc
         .fillColor("red")
         .text(
           `Initial payment 80% of Villa price $ ${
             contractData.totalAmount || 32000
-          }`
+          }`,
+          50
         );
       doc.moveDown();
 
       // FIRST PARTY
-      doc.fillColor("black").text("FIRST PARTY:");
+      doc.fillColor("black").text("FIRST PARTY:", 50);
       doc.moveDown();
       const customer = contractData.customerInfo;
-      doc.text(`● Name : _Ms & Mr_ ( ${customer.name || "………"} ) 9 dots`);
-      doc.text(`● Date of Birth : ( ${customer.dob || "… ……"} ) 3 6 dots`);
-      doc.text(`● Address : ( ${customer.address || "… ……"} )`);
-      doc.text(`● ID/Passport Nr : ( ${customer.passportId || "… ……"} )`);
+      doc.text(
+        `• Name : _Ms & Mr_ ( ${customer.name || "..........."} ) 9 dots`,
+        50
+      );
+      doc.text(
+        `• Date of Birth : ( ${customer.dob || "..........."} ) 3 6 dots`,
+        50
+      );
+      doc.text(`• Address : ( ${customer.address || "..........."} )`, 50);
+      doc.text(
+        `• ID/Passport Nr : ( ${customer.passportId || "..........."} )`,
+        50
+      );
       doc.moveDown();
 
       // SECOND PARTY
-      doc.text("SECOND PARTY:");
+      doc.text("SECOND PARTY:", 50);
       doc.moveDown();
-      doc.text("● Company Name: _______________future life PT");
-      doc.text("● Represented by :___ ___________DIRECTOR____________");
-      doc.text("● Address: _my secret home__jl.courtyard 1 _ Seminyak , bali");
-      doc.text("● Company id number:__");
+      doc.text("• Company Name: _______________future life PT", 50);
+      doc.text("• Represented by :___ ___________DIRECTOR____________", 50);
+      doc.text(
+        "• Address: _my secret home__jl.courtyard 1 _ Seminyak , bali",
+        50
+      );
+      doc.text("• Company id number:__", 50);
       doc.moveDown(2);
 
       // Agreement text
       doc.text(
-        'FIRST PARTY, acting on behalf of himself, hereinafter referred to as "Ms & Mr ( ……… )".'
+        'FIRST PARTY, acting on behalf of himself, hereinafter referred to as "Ms & Mr ( ......... )".',
+        50
       );
       doc.moveDown();
       doc.text(
-        'SECOND PARTY acting on behalf of itself, hereinafter referred to as "My Future Life Bali".'
+        'SECOND PARTY acting on behalf of itself, hereinafter referred to as "My Future Life Bali".',
+        50
       );
       doc.moveDown();
       doc.text(
-        "The PARTIES agree to enter into a Business Cooperation to develop a complex villa business, under the terms and conditions outlined in the following articles."
+        "The PARTIES agree to enter into a Business Cooperation to develop a complex villa business, under the terms and conditions outlined in the following articles.",
+        50
       );
       doc.moveDown(3);
 
       // Footer
-      doc.text("Please sign each page", { align: "right" });
-      doc.text("1", { align: "right" });
+      doc.text("Please sign each page", 480, doc.page.height - 80);
+      doc.text("1", 500, doc.page.height - 65);
 
       // PAGE 2
       doc.addPage();
@@ -130,66 +162,78 @@ const generateContractPDF = (contractData) => {
       doc
         .fontSize(14)
         .fillColor("black")
-        .text("Article 1a: SCOPE", { underline: true });
+        .text("Article 1a: SCOPE", 50, { underline: true });
       doc.moveDown();
       doc
         .fontSize(12)
         .text(
-          `The "Ms & Mr ( ……… )" hereby agrees to pay $ USD${
+          `The "Ms & Mr ( ......... )" hereby agrees to pay $ USD${
             contractData.totalAmount || 32000
-          } to "My Future Life Bali" for costs:`
+          } to "My Future Life Bali" for costs:`,
+          50
         );
       doc.moveDown();
-      doc.text("● Construction");
+      doc.text("• Construction", 50);
       doc.text(
-        "● Fully Furnished ( Furnishing are paid by future life PT & owned by future life PT)"
+        "• Fully Furnished ( Furnishing are paid by future life PT & owned by future life PT)",
+        50
       );
-      doc.text("● 1 bedroom");
-      doc.text("● 1 bathroom and bathtub (semi outside)");
-      doc.text("● 1 outdoor kitchen");
-      doc.text("● Garden of minimum 80 meters²");
-      doc.text("● Rooftop or semi 65 m² or above 65²");
+      doc.text("• 1 bedroom", 50);
+      doc.text("• 1 bathroom and bathtub (semi outside)", 50);
+      doc.text("• 1 outdoor kitchen", 50);
+      doc.text("• Garden of minimum 80 meters²", 50);
+      doc.text("• Rooftop or semi 65 m² or above 65²", 50);
       doc.text(
-        "● Land area will be above 150m² total land with construction and all"
+        "• Land area will be above 150m² total land with construction and all",
+        50
       );
       doc.text(
-        "● All that are requested by the customer as and Add-ons are on the receipt and are added on top of what is mentioned here, can be found in ATTACHMENT A"
+        "• All that are requested by the customer as and Add-ons are on the receipt and are added on top of what is mentioned here, can be found in ATTACHMENT A",
+        50
       );
       doc.moveDown();
       doc.text(
-        "If additional pool is wished that will be 4500 usd on top of the original Price"
+        "If additional pool is wished that will be 4500 usd on top of the original Price",
+        50
       );
-      doc.text("pool ( yes or no) ( … …… )");
+      doc.text("pool ( yes or no) ( ........... )", 50);
       doc.moveDown();
       doc.text(
-        "Additional cost and ADD ONS coming in the bottom of the document as"
+        "Additional cost and ADD ONS coming in the bottom of the document as",
+        50
       );
-      doc.text("attachment A ADD ONS");
+      doc.text("attachment A ADD ONS", 50);
       doc.moveDown();
       doc.text(
-        "Both parties agree to share the profits equally: 50% for 'Ms & Mr ' and 50% for 'My Future Life Bali'.\""
+        "Both parties agree to share the profits equally: 50% for 'Ms & Mr ' and 50% for 'My Future Life Bali'.\"",
+        50
       );
       doc.moveDown();
 
-      doc.text("Article 1b this time only", { underline: true });
+      doc.text("Article 1b this time only", 50, { underline: true });
       doc.moveDown();
       doc.text(
-        `The parties agree that, for this time only, 'Ms & Mr ( ……… )' will pay 80 % of $ mentioned above initially. before we start. And the rest 20% after start`
+        `The parties agree that, for this time only, 'Ms & Mr ( ......... )' will pay 80 % of $ mentioned above initially. before we start. And the rest 20% after start`,
+        50
       );
       doc.moveDown();
 
-      doc.text("Article 1c length of contract and Lease", { underline: true });
-      doc.text("The term of this agreement is 23 years,");
+      doc.text("Article 1c length of contract and Lease", 50, {
+        underline: true,
+      });
+      doc.text("The term of this agreement is 23 years,", 50);
       doc.text(
-        "The rental of the land for the 23-year period is covered by the Payment that is mentioned payment, valid until : date mentioned beginning of the contract"
+        "The rental of the land for the 23-year period is covered by the Payment that is mentioned payment, valid until : date mentioned beginning of the contract",
+        50
       );
       doc.text(
-        "For the lease $500 needs to be paid after 8 years to cover the last 15 years of the 23 year total lease period."
+        "For the lease $500 needs to be paid after 8 years to cover the last 15 years of the 23 year total lease period.",
+        50
       );
       doc.moveDown(3);
 
-      doc.text("Please sign each page", { align: "right" });
-      doc.text("2", { align: "right" });
+      doc.text("Please sign each page", 480, doc.page.height - 80);
+      doc.text("2", 500, doc.page.height - 65);
 
       // PAGE 3
       doc.addPage();
