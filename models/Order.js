@@ -4,14 +4,19 @@ const orderSchema = new mongoose.Schema(
   {
     userEmail: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       lowercase: true,
       match: [/.+\@.+\..+/, "Please fill a valid email address"],
     },
+    userPhone: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     cartId: {
-      type: String, // Changed to String to accept mock cart IDs
-      required: false, // Made optional
+      type: String,
+      required: false,
     },
     // Multiple users can be on one order
     userInfo: [
@@ -27,7 +32,7 @@ const orderSchema = new mongoose.Schema(
           trim: true,
         },
         dob: {
-          type: String, // Changed to String to handle date inputs better
+          type: String,
           required: true,
         },
         address: {
@@ -36,7 +41,7 @@ const orderSchema = new mongoose.Schema(
           trim: true,
         },
         country: {
-          type: String, // Simplified - just store country name
+          type: String,
           required: true,
         },
         email: {
@@ -51,8 +56,15 @@ const orderSchema = new mongoose.Schema(
           required: true,
           trim: true,
         },
-        frontImage: String,
-        backImage: String,
+        // Store base64 encoded images directly
+        frontImage: {
+          type: String, // Base64 string
+          required: false,
+        },
+        backImage: {
+          type: String, // Base64 string
+          required: false,
+        },
       },
     ],
     inheritanceContacts: [
@@ -72,7 +84,7 @@ const orderSchema = new mongoose.Schema(
           trim: true,
         },
         percentage: {
-          type: String, // Changed to String to handle input better
+          type: String,
           required: false,
         },
       },
@@ -93,7 +105,10 @@ const orderSchema = new mongoose.Schema(
           type: String,
           trim: true,
         },
-        idImage: String,
+        idImage: {
+          type: String, // Base64 string
+          required: false,
+        },
       },
     ],
     basePackage: {
@@ -170,7 +185,7 @@ const orderSchema = new mongoose.Schema(
       transactionId: String,
       paymentDate: Date,
       amount: Number,
-      paymentType: String, // "full" or "partial"
+      paymentType: String,
     },
   },
   {

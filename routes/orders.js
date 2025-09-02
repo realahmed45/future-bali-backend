@@ -3,6 +3,33 @@ const router = express.Router();
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+
+// USE THE SAME SECRET as in auth.js
+const JWT_SECRET = "your_jwt_secret_here";
+
+// Helper function to get user from token
+const getUserFromToken = async (req) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return null;
+    }
+
+    // Use the same secret
+    const decoded = jwt.verify(token, "your_jwt_secret_here");
+
+    // Find user by email or phone from the token
+    const user = await User.findOne({
+      $or: [{ email: decoded.email }, { phone: decoded.phone }],
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Error getting user from token:", error);
+    return null;
+  }
+};
 
 // Create new order - REAL DATABASE SAVING
 router.post("/create", async (req, res) => {
@@ -11,23 +38,22 @@ router.post("/create", async (req, res) => {
 
     console.log("[Orders] Creating order with data:", req.body);
 
-    // For now, we'll use a default email or extract from request
-    const userEmail = req.body.userEmail || "default@example.com";
+    // Get user from token
+    const user = await getUserFromToken(req);
 
-    // Find or create user
-    let user = await User.findOne({ email: userEmail });
     if (!user) {
-      user = new User({
-        email: userEmail,
-        isVerified: true,
-        lastLogin: new Date(),
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. Please login first.",
       });
-      await user.save();
     }
+
+    console.log("[Orders] Found user:", user.email || user.phone);
 
     // Create order
     const order = new Order({
-      userEmail,
+      userEmail: user.email || null,
+      userPhone: user.phone || null,
       cartId,
       basePackage,
       selectedAddOns,
@@ -39,10 +65,13 @@ router.post("/create", async (req, res) => {
     const savedOrder = await order.save();
 
     // Update cart status if cartId provided
-    if (cartId && cartId.startsWith("cart_")) {
+    if (cartId) {
       console.log("[Orders] Updating cart status to ordered");
       await Cart.findOneAndUpdate(
-        { userEmail, status: "active" },
+        {
+          $or: [{ userEmail: user.email }, { userPhone: user.phone }],
+          status: "active",
+        },
         { status: "ordered" }
       );
     }
@@ -64,7 +93,55 @@ router.post("/create", async (req, res) => {
     });
   }
 });
+// Add this route to your orders router (after the existing routes)
 
+// Update order with payment details - REAL DATABASE UPDATE
+router.put("/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const updateData = req.body;
+
+    console.log("[Orders] Updating order with payment details:", orderId);
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    console.log("[Orders] Order updated successfully with payment details");
+
+    res.status(200).json({
+      success: true,
+      order,
+      message: "Order updated successfully with payment information",
+    });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order in database",
+      error: error.message,
+    });
+  }
+});
 // Save user information - REAL DATABASE UPDATE
 router.post("/save-user-info", async (req, res) => {
   try {
@@ -82,7 +159,7 @@ router.post("/save-user-info", async (req, res) => {
     const order = await Order.findByIdAndUpdate(
       orderId,
       {
-        userInfo: userInfo, // Save the array of user info
+        userInfo: userInfo,
         updatedAt: new Date(),
       },
       { new: true }
@@ -287,16 +364,20 @@ router.get("/:orderId", async (req, res) => {
 // Get user orders - REAL DATABASE FETCH
 router.get("/my-orders", async (req, res) => {
   try {
-    const { email } = req.query;
+    // Get user from request
+    const user = await getUserFromRequest(req);
 
-    if (!email) {
+    if (!user) {
       return res.status(400).json({
         success: false,
-        message: "Email required",
+        message: "User authentication required",
       });
     }
 
-    const orders = await Order.find({ userEmail: email }).sort({
+    // Find orders by either email or phone
+    const orders = await Order.find({
+      $or: [{ userEmail: user.email }, { userPhone: user.phone }],
+    }).sort({
       createdAt: -1,
     });
 

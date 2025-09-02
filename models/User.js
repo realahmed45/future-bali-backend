@@ -1,12 +1,16 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
+    phone: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
     email: {
       type: String,
-      required: true,
+      sparse: true,
       unique: true,
-      lowercase: true,
     },
     isVerified: {
       type: Boolean,
@@ -22,4 +26,16 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("User", userSchema);
+// Add validation to ensure at least one field is provided
+UserSchema.pre("save", function (next) {
+  if (!this.phone && !this.email) {
+    const error = new Error("User must have either phone or email");
+    return next(error);
+  }
+  next();
+});
+
+// Create the model
+const User = mongoose.model("User", UserSchema);
+
+module.exports = User;

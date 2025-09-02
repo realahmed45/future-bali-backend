@@ -3,26 +3,52 @@ const router = express.Router();
 const Cart = require("../models/Cart");
 const User = require("../models/User");
 
+// Middleware to get user identifier from token
+const getUserIdentifier = (req) => {
+  // This should extract user info from JWT token
+  // For now, we'll use a simple approach
+  return req.body.email || req.body.phone || req.query.email || req.query.phone;
+};
+
 // Save cart with REAL database operations
 router.post("/save", async (req, res) => {
   try {
-    const { email, basePackage, selectedAddOns, totalAmount } = req.body;
+    const { basePackage, selectedAddOns, totalAmount } = req.body;
 
-    console.log("[Cart] Save request received for:", email);
+    // Get user identifier from request (could be email or phone)
+    const userIdentifier = getUserIdentifier(req);
 
-    // Find or create user
-    let user = await User.findOne({ email });
-    if (!user) {
-      console.log("[Cart] Creating new user:", email);
-      user = new User({
-        email,
-        isVerified: true, // Auto-verify for simplicity
-        lastLogin: new Date(),
+    if (!userIdentifier) {
+      return res.status(400).json({
+        success: false,
+        message: "User identifier (email or phone) is required",
       });
+    }
+
+    console.log("[Cart] Save request received for:", userIdentifier);
+
+    // Find user by email or phone
+    let user = await User.findOne({
+      $or: [{ email: userIdentifier }, { phone: userIdentifier }],
+    });
+
+    if (!user) {
+      console.log("[Cart] Creating new user:", userIdentifier);
+      user = new User();
+
+      // Determine if identifier is email or phone
+      if (userIdentifier.includes("@")) {
+        user.email = userIdentifier;
+      } else {
+        user.phone = userIdentifier;
+      }
+
+      user.isVerified = true;
+      user.lastLogin = new Date();
       await user.save();
     }
 
-    console.log("[Cart] User found/created:", user.email);
+    console.log("[Cart] User found/created:", user.email || user.phone);
 
     // Delete existing active carts for this user
     await Cart.deleteMany({ user: user._id, status: "active" });
@@ -30,7 +56,8 @@ router.post("/save", async (req, res) => {
     // Create new cart
     const cart = new Cart({
       user: user._id,
-      userEmail: email,
+      userEmail: user.email || null,
+      userPhone: user.phone || null,
       basePackage,
       selectedAddOns,
       totalAmount,
@@ -60,17 +87,29 @@ router.post("/save", async (req, res) => {
 // Get active cart
 router.get("/active", async (req, res) => {
   try {
-    const { email } = req.query;
+    const userIdentifier = getUserIdentifier(req);
 
-    if (!email) {
+    if (!userIdentifier) {
       return res.status(400).json({
         success: false,
-        message: "Email required",
+        message: "User identifier (email or phone) is required",
+      });
+    }
+
+    // Find user first
+    const user = await User.findOne({
+      $or: [{ email: userIdentifier }, { phone: userIdentifier }],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
     }
 
     const cart = await Cart.findOne({
-      userEmail: email,
+      user: user._id,
       status: "active",
     }).populate("user");
 

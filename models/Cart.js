@@ -10,7 +10,12 @@ const cartSchema = new mongoose.Schema(
     },
     userEmail: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
+      index: true,
+    },
+    userPhone: {
+      type: String,
+      required: false, // Added phone support
       index: true,
     },
     basePackage: {
@@ -59,6 +64,7 @@ const cartSchema = new mongoose.Schema(
 // Index for efficient queries
 cartSchema.index({ user: 1, status: 1 });
 cartSchema.index({ userEmail: 1, status: 1 });
+cartSchema.index({ userPhone: 1, status: 1 }); // Added phone index
 
 const Cart = mongoose.model("Cart", cartSchema);
 
