@@ -1,5 +1,6 @@
 // No need for dotenv since we're hardcoding everything
 const express = require("express");
+const cors = require("cors"); // Added CORS import
 const mongoose = require("mongoose");
 const path = require("path");
 const authRoutes = require("./routes/auth");
@@ -13,7 +14,10 @@ const PORT = 5000; // Hardcoded port
 // JWT Configuration (hardcoded)
 const JWT_SECRET = "my-super-secret-jwt-key-for-villa-investment-platform-2024";
 
-// Middleware - Removed CORS, Express will handle all origins by default
+// CORS Middleware - Allow all origins
+app.use(cors()); // This allows all origins
+
+// Other Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
