@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const rateLimit = require("express-rate-limit");
 const User = require("../models/User"); // Import User model
 
-// ADD THIS LINE - Use the same secret everywhere
-const JWT_SECRET = "your_jwt_secret_here";
+// Use environment variable for JWT secret or fallback
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_here";
 
 module.exports = () => {
-  // REMOVE the (JWT_SECRET) parameter
   const router = require("express").Router();
 
   // OTP Schema
@@ -23,7 +23,7 @@ module.exports = () => {
         type: Date,
         required: true,
         default: Date.now,
-        expires: 600,
+        expires: 600, // 10 minutes
       },
     },
     {
@@ -33,10 +33,46 @@ module.exports = () => {
 
   const OTP = mongoose.model("OTP", OTPSchema);
 
-  // Your UltraMsg credentials
-  const ULTRAMSG_INSTANCE_ID = "instance100246";
-  const ULTRAMSG_TOKEN = "9vj68bxsruo8xd5o";
+  // Token blacklist (in production, use Redis)
+  const TokenBlacklist = new Set();
+
+  // UltraMsg credentials
+  const ULTRAMSG_INSTANCE_ID =
+    process.env.ULTRAMSG_INSTANCE_ID || "instance100246";
+  const ULTRAMSG_TOKEN = process.env.ULTRAMSG_TOKEN || "9vj68bxsruo8xd5o";
   const ULTRAMSG_API_URL = `https://api.ultramsg.com/${ULTRAMSG_INSTANCE_ID}/messages/chat`;
+
+  // Rate limiting for OTP generation
+  const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 OTP requests per windowMs
+    message: {
+      success: false,
+      message: "Too many OTP requests. Please try again in 15 minutes.",
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Rate limiting for OTP verification
+  const verifyLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // limit each IP to 10 verification attempts per windowMs
+    message: {
+      success: false,
+      message:
+        "Too many verification attempts. Please try again in 15 minutes.",
+    },
+  });
+
+  // Middleware to check token blacklist
+  const checkTokenBlacklist = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (token && TokenBlacklist.has(token)) {
+      return res.status(401).json({ success: false, message: "Token revoked" });
+    }
+    next();
+  };
 
   // WhatsApp message function using UltraMsg
   const sendWhatsAppMessage = async (phone, message) => {
@@ -85,7 +121,7 @@ module.exports = () => {
   };
 
   // Generate OTP endpoint
-  router.post("/generate-otp", async (req, res) => {
+  router.post("/generate-otp", otpLimiter, async (req, res) => {
     try {
       const { phone, email } = req.body;
 
@@ -111,7 +147,7 @@ module.exports = () => {
         });
       }
 
-      // Find or create user - USING IMPORTED USER MODEL
+      // Find or create user
       const userFilter = phone ? { phone } : { email };
       let user = await User.findOne(userFilter);
 
@@ -120,7 +156,23 @@ module.exports = () => {
         user = new User();
         if (phone) user.phone = phone;
         if (email) user.email = email;
-        await user.save();
+
+        try {
+          await user.save();
+        } catch (saveError) {
+          if (saveError.code === 11000) {
+            // Duplicate key error - user might have been created between findOne and save
+            user = await User.findOne(userFilter);
+            if (!user) {
+              return res.status(409).json({
+                success: false,
+                message: "User with this contact information already exists",
+              });
+            }
+          } else {
+            throw saveError;
+          }
+        }
       }
 
       // Generate OTP
@@ -130,12 +182,12 @@ module.exports = () => {
       // Save OTP to database
       const otpData = phone ? { phone, otp } : { email, otp };
       await OTP.findOneAndUpdate(
-        otpData,
+        phone ? { phone } : { email },
         { ...otpData, expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
         { upsert: true, new: true }
       );
 
-      // Return OTP to frontend (frontend will handle email, backend handles WhatsApp)
+      // Handle OTP delivery
       if (phone) {
         // Send WhatsApp via UltraMsg
         try {
@@ -173,39 +225,9 @@ module.exports = () => {
       });
     }
   });
-  // In your auth.js router
-  router.get("/verify-token", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) return res.json({ success: false });
 
-      // Verify token
-      // In verify-token endpoint:
-      const decoded = jwt.verify(token, "your_jwt_secret_here");
-
-      // Check if user exists by either email or phone
-      const user = await User.findOne({
-        $or: [{ email: decoded.email }, { phone: decoded.phone }],
-      });
-
-      if (!user) {
-        return res.json({ success: false });
-      }
-
-      res.json({
-        success: true,
-        user: {
-          email: user.email,
-          phone: user.phone,
-        },
-      });
-    } catch (error) {
-      console.error("Token verification error:", error);
-      res.json({ success: false });
-    }
-  });
   // Verify OTP endpoint
-  router.post("/verify-otp", async (req, res) => {
+  router.post("/verify-otp", verifyLimiter, async (req, res) => {
     try {
       const { phone, email, otp } = req.body;
       console.log("Verification request:", { phone, email, otp });
@@ -252,43 +274,189 @@ module.exports = () => {
 
       if (otpRecord.expiresAt < new Date()) {
         console.log("OTP expired:", otpRecord.expiresAt);
+        await OTP.deleteOne({ _id: otpRecord._id }); // Clean up expired OTP
         return res.status(400).json({
           success: false,
           message: "OTP expired",
         });
       }
 
-      // Update user - USING IMPORTED USER MODEL
+      // Find the specific user
       const userFilter = phone ? { phone } : { email };
-      await User.findOneAndUpdate(
+      const user = await User.findOneAndUpdate(
         userFilter,
-        { lastLogin: new Date(), isVerified: true },
+        {
+          lastLogin: new Date(),
+          isVerified: true,
+          lastTokenIssued: new Date(),
+          deviceInfo: req.headers["user-agent"] || "unknown",
+        },
         { new: true }
       );
 
-      // Generate JWT token with both email and phone
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Generate JWT token with user ID and specific login method
       const tokenPayload = {
-        phone: phone || null,
-        email: email || null,
+        userId: user._id.toString(), // Include user ID for precise identification
+        loginMethod: phone ? "phone" : "email",
+        phone: phone || undefined,
+        email: email || undefined,
+        iat: Math.floor(Date.now() / 1000), // Add issued at time
+        userAgent: req.headers["user-agent"] || "unknown",
       };
-      // In verify-otp endpoint:
-      const token = jwt.sign(tokenPayload, "your_jwt_secret_here", {
+
+      const token = jwt.sign(tokenPayload, JWT_SECRET, {
         expiresIn: "7d",
       });
+
       // Clean up OTP
       await OTP.deleteOne({ _id: otpRecord._id });
-      console.log("OTP verification successful");
+      console.log("OTP verification successful for user:", user._id);
 
       res.json({
         success: true,
         token,
         message: "Authentication successful",
+        user: {
+          id: user._id,
+          phone: user.phone,
+          email: user.email,
+        },
       });
     } catch (error) {
       console.error("OTP verification error:", error);
       res.status(500).json({
         success: false,
         message: "OTP verification failed",
+      });
+    }
+  });
+
+  // Token verification endpoint
+  router.get("/verify-token", checkTokenBlacklist, async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.json({ success: false, message: "No token provided" });
+      }
+
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET);
+      console.log("Decoded token:", decoded);
+
+      // Use user ID for precise user lookup
+      let user;
+      if (decoded.userId) {
+        // New token format with user ID
+        user = await User.findById(decoded.userId);
+      } else {
+        // Fallback for old tokens - but use more specific query
+        if (decoded.phone && !decoded.email) {
+          // Only phone present - find user with ONLY phone
+          user = await User.findOne({
+            phone: decoded.phone,
+            email: { $exists: false },
+          });
+        } else if (decoded.email && !decoded.phone) {
+          // Only email present - find user with ONLY email
+          user = await User.findOne({
+            email: decoded.email,
+            phone: { $exists: false },
+          });
+        } else if (decoded.phone && decoded.email) {
+          // Both fields present - find exact match
+          user = await User.findOne({
+            phone: decoded.phone,
+            email: decoded.email,
+          });
+        } else {
+          return res.json({ success: false, message: "Invalid token format" });
+        }
+      }
+
+      if (!user) {
+        console.log("User not found for token:", decoded);
+        return res.json({ success: false, message: "User not found" });
+      }
+
+      // Check if this token was issued before user's last token update
+      if (decoded.iat && user.lastTokenIssued) {
+        const tokenIssuedAt = new Date(decoded.iat * 1000);
+        if (tokenIssuedAt < user.lastTokenIssued) {
+          console.log("Token revoked - issued before last token update");
+          return res.json({ success: false, message: "Token revoked" });
+        }
+      }
+
+      // Optional: Check device consistency (log warning but don't block)
+      const currentUserAgent = req.headers["user-agent"];
+      if (user.deviceInfo && currentUserAgent !== user.deviceInfo) {
+        console.warn(
+          `Device mismatch for user ${user._id}: expected ${user.deviceInfo}, got ${currentUserAgent}`
+        );
+        // You can choose to revoke token here or just log the warning
+      }
+
+      console.log("Token verified for user:", user._id);
+
+      res.json({
+        success: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          phone: user.phone,
+        },
+      });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      if (error.name === "JsonWebTokenError") {
+        res.json({ success: false, message: "Invalid token" });
+      } else if (error.name === "TokenExpiredError") {
+        res.json({ success: false, message: "Token expired" });
+      } else {
+        res.json({ success: false, message: "Token verification failed" });
+      }
+    }
+  });
+
+  // Logout endpoint
+  router.post("/logout", async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (token) {
+        // Add token to blacklist
+        TokenBlacklist.add(token);
+
+        // Update user's lastTokenIssued time to invalidate all tokens
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          if (decoded.userId) {
+            await User.findByIdAndUpdate(decoded.userId, {
+              lastTokenIssued: new Date(),
+            });
+            console.log("User session invalidated:", decoded.userId);
+          }
+        } catch (e) {
+          // Token might be invalid, but still proceed with logout
+          console.log("Token verification failed during logout:", e.message);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Logged out successfully",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Logout failed",
       });
     }
   });
@@ -329,10 +497,17 @@ module.exports = () => {
     }
   });
 
-  // Debug endpoint to check OTP records
+  // Debug endpoint to check OTP records (remove in production)
   router.get("/debug-otp", async (req, res) => {
     try {
-      const otpRecords = await OTP.find({});
+      if (process.env.NODE_ENV === "production") {
+        return res.status(403).json({
+          success: false,
+          message: "Debug endpoint disabled in production",
+        });
+      }
+
+      const otpRecords = await OTP.find({}).limit(10);
       res.json({
         success: true,
         records: otpRecords,
@@ -344,6 +519,34 @@ module.exports = () => {
       });
     }
   });
+
+  // Cleanup expired data (run periodically)
+  const cleanupExpiredData = async () => {
+    try {
+      // Clean expired OTPs (handled by MongoDB TTL, but this is backup)
+      const deleted = await OTP.deleteMany({ expiresAt: { $lt: new Date() } });
+      console.log(`Cleaned up ${deleted.deletedCount} expired OTP records`);
+
+      // Clean old blacklisted tokens (keep for 7 days)
+      // In production, implement proper token blacklist cleanup with Redis
+      if (TokenBlacklist.size > 1000) {
+        TokenBlacklist.clear(); // Simple cleanup for memory-based blacklist
+        console.log("Token blacklist cleared");
+      }
+    } catch (error) {
+      console.error("Cleanup error:", error);
+    }
+  };
+
+  // Run cleanup every hour
+  const cleanupInterval = setInterval(cleanupExpiredData, 60 * 60 * 1000);
+
+  // Cleanup on router destruction
+  router.cleanup = () => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+    }
+  };
 
   return router;
 };
