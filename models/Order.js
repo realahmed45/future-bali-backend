@@ -87,6 +87,11 @@ const orderSchema = new mongoose.Schema(
           type: String,
           required: false,
         },
+        // ADDED: Passport image field for inheritance contacts
+        passportImage: {
+          type: String, // Base64 string
+          required: false,
+        },
       },
     ],
     emergencyContacts: [

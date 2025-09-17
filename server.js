@@ -69,6 +69,7 @@ app.use("/api/auth", authRoutes(JWT_SECRET));
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/contracts", contractRoutes);
+app.use("/api/email", require("./routes/email"));
 
 // Test endpoint to verify routes are working
 app.get("/api/test", (req, res) => {
