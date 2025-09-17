@@ -288,7 +288,7 @@ module.exports = () => {
         {
           lastLogin: new Date(),
           isVerified: true,
-          lastTokenIssued: new Date(),
+
           deviceInfo: req.headers["user-agent"] || "unknown",
         },
         { new: true }
