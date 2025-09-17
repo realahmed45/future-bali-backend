@@ -102,5 +102,5 @@ UserSchema.methods.isSessionValid = function (tokenIssuedAt) {
 
 // Create the model
 const User = mongoose.model("User", UserSchema);
-
+//new deployement
 module.exports = User;
