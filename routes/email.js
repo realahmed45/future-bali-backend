@@ -7,19 +7,16 @@ const router = express.Router();
 
 const createEmailTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp.titan.email", // ✅ Correct Titan SMTP
-    port: 587, // TLS port
-    secure: false, // STARTTLS
+    host: "smtpout.secureserver.net",
+    port: 465, // Change from 587 to 465
+    secure: true, // Change to true for port 465
     auth: {
       user: "info@futurelifebali.com",
-      pass: "PASSnew123#", // ⚠️ move to ENV in production
+      pass: "PASSnew123#",
     },
-    tls: {
-      rejectUnauthorized: false,
-    },
+    // Remove TLS config for port 465
   });
 };
-
 // Send contract PDF email to multiple recipients
 router.post("/send-contract", async (req, res) => {
   try {
