@@ -1,23 +1,27 @@
-// Backend Email Service - Complete File
+// Backend Email Service - Modified for Titan Email
 // File: routes/email.js
 
 const express = require("express");
 const nodemailer = require("nodemailer");
 const router = express.Router();
 
-// Email configuration options
 const createEmailTransporter = () => {
-  // OPTION 1: Gmail (Easiest setup)
-  return nodemailer.createTransporter({
-    service: "gmail",
+  return nodemailer.createTransport({
+    host: "smtpout.secureserver.net", // GoDaddy's SMTP server for Titan
+    port: 587, // TLS port
+    secure: false, // Use TLS
     auth: {
-      user: process.env.EMAIL_USER || "youremail@gmail.com",
-      pass: process.env.EMAIL_APP_PASSWORD || "your-16-char-app-password",
+      user: "info@futurelifebali.com",
+      pass: "PASSnew123#", // Hardcoded Titan email password
+    },
+    tls: {
+      ciphers: "SSLv3",
+      rejectUnauthorized: false,
     },
   });
 };
 
-// Send contract PDF email
+// Send contract PDF email to multiple recipients
 router.post("/send-contract", async (req, res) => {
   try {
     const { orderId, pdfBase64, customerEmail, customerName } = req.body;
@@ -77,9 +81,12 @@ router.post("/send-contract", async (req, res) => {
     // Verify transporter configuration
     try {
       await transporter.verify();
-      console.log("[Email] Transporter verified successfully");
+      console.log("[Email] Titan transporter verified successfully");
     } catch (verifyError) {
-      console.error("[Email] Transporter verification failed:", verifyError);
+      console.error(
+        "[Email] Titan transporter verification failed:",
+        verifyError
+      );
       return res.status(500).json({
         success: false,
         message: "Email service configuration error",
@@ -94,11 +101,20 @@ router.post("/send-contract", async (req, res) => {
     );
     const filename = `Villa_Investment_Contract_${sanitizedCustomerName}_${orderId}_${currentDate}.pdf`;
 
-    // Email content
-    const mailOptions = {
+    // Define all recipients
+    const recipients = [
+      customerEmail, // Customer's email
+      "bassam.agi@gmail.com", // Admin 1
+      "Futurelifebali@gmail.com", // Admin 2
+    ];
+
+    console.log("[Email] Sending to recipients:", recipients);
+
+    // Email content for customer
+    const customerMailOptions = {
       from: {
         name: "My Future Life Bali",
-        address: process.env.EMAIL_USER || "youremail@gmail.com",
+        address: "info@futurelifebali.com",
       },
       to: customerEmail,
       subject: `Your Villa Investment Contract - Order #${orderId}`,
@@ -176,7 +192,7 @@ router.post("/send-contract", async (req, res) => {
                 <div style="background: #7c3aed; color: white; padding: 20px; border-radius: 25px; display: inline-block;">
                   <h3 style="margin: 0 0 10px 0; font-size: 18px;">Questions? Contact Us:</h3>
                   <p style="margin: 5px 0; font-size: 16px; font-weight: bold;">📞 WhatsApp: +62 818-1818-5522</p>
-                  <p style="margin: 5px 0; font-size: 16px;">📧 Email: info@myfuturelifebali.com</p>
+                  <p style="margin: 5px 0; font-size: 16px;">📧 Email: info@futurelifebali.com</p>
                 </div>
               </div>
 
@@ -206,27 +222,92 @@ router.post("/send-contract", async (req, res) => {
       ],
     };
 
-    console.log("[Email] Sending contract email...");
+    // Email content for internal team
+    const internalMailOptions = {
+      from: {
+        name: "My Future Life Bali - System",
+        address: "info@futurelifebali.com",
+      },
+      to: ["bassam.agi@gmail.com", "Futurelifebali@gmail.com"],
+      subject: `New Contract Generated - Order #${orderId} - ${customerName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #059669;">New Contract Generated</h2>
+          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p><strong>Customer:</strong> ${customerName || "N/A"}</p>
+          <p><strong>Email:</strong> ${customerEmail}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+          <p>Contract has been sent to customer and is attached here for records.</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: filename,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    };
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
+    console.log("[Email] Sending contract emails...");
 
-    console.log("[Email] Contract sent successfully!");
-    console.log("[Email] Message ID:", info.messageId);
-    console.log("[Email] Recipient:", customerEmail);
-    console.log("[Email] File size:", `${pdfSizeMB.toFixed(2)} MB`);
+    // Send both emails
+    const results = await Promise.allSettled([
+      transporter.sendMail(customerMailOptions),
+      transporter.sendMail(internalMailOptions),
+    ]);
 
-    res.status(200).json({
-      success: true,
-      message: "Contract PDF sent successfully",
+    // Check results
+    const customerResult = results[0];
+    const internalResult = results[1];
+
+    let successCount = 0;
+    let errors = [];
+
+    if (customerResult.status === "fulfilled") {
+      successCount++;
+      console.log(
+        "[Email] Customer email sent:",
+        customerResult.value.messageId
+      );
+    } else {
+      errors.push(`Customer email failed: ${customerResult.reason.message}`);
+    }
+
+    if (internalResult.status === "fulfilled") {
+      successCount++;
+      console.log(
+        "[Email] Internal email sent:",
+        internalResult.value.messageId
+      );
+    } else {
+      errors.push(`Internal email failed: ${internalResult.reason.message}`);
+    }
+
+    // Prepare response
+    const response = {
+      success: successCount > 0,
+      message: `${successCount} out of 2 emails sent successfully`,
       data: {
-        messageId: info.messageId,
-        recipient: customerEmail,
+        customerSent: customerResult.status === "fulfilled",
+        internalSent: internalResult.status === "fulfilled",
+        recipients: recipients,
         filename: filename,
         fileSize: `${pdfSizeMB.toFixed(2)} MB`,
         orderId: orderId,
       },
-    });
+    };
+
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    console.log(`[Email] Results: ${successCount} emails sent successfully`);
+    if (errors.length > 0) {
+      console.error("[Email] Errors:", errors);
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("[Email] Error sending contract:", error);
 
@@ -236,14 +317,14 @@ router.post("/send-contract", async (req, res) => {
 
     if (error.code === "EAUTH") {
       errorMessage =
-        "Email authentication failed. Please check email credentials.";
+        "Email authentication failed. Please check Titan email credentials.";
       statusCode = 401;
     } else if (error.code === "ECONNECTION") {
       errorMessage =
-        "Could not connect to email server. Please try again later.";
+        "Could not connect to Titan email server. Please try again later.";
       statusCode = 503;
     } else if (error.message.includes("Invalid login")) {
-      errorMessage = "Email login credentials are invalid.";
+      errorMessage = "Titan email login credentials are invalid.";
       statusCode = 401;
     } else if (error.message.includes("Message too large")) {
       errorMessage = "PDF file is too large for email delivery.";
@@ -258,93 +339,67 @@ router.post("/send-contract", async (req, res) => {
   }
 });
 
-// Test email configuration
-router.post("/test-email", async (req, res) => {
+// Test Titan email configuration
+router.post("/test-titan", async (req, res) => {
   try {
-    console.log("[Email] Testing email configuration...");
+    console.log("[Email] Testing Titan email configuration...");
 
     const transporter = createEmailTransporter();
 
     // Verify transporter
     await transporter.verify();
 
-    console.log("[Email] Configuration test passed");
+    // Send test email
+    const testMail = {
+      from: {
+        name: "My Future Life Bali - Test",
+        address: "info@futurelifebali.com",
+      },
+      to: "bassam.agi@gmail.com", // Send test to your admin email
+      subject: "Titan Email Configuration Test",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #7c3aed;">Titan Email Test Successful!</h2>
+          <p>This test email confirms that your Titan email configuration is working correctly.</p>
+          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Configuration Details:</h3>
+            <ul>
+              <li><strong>SMTP Server:</strong> smtp.titan.email</li>
+              <li><strong>Port:</strong> 587 (TLS)</li>
+              <li><strong>From Email:</strong> info@futurelifebali.com</li>
+              <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
+            </ul>
+          </div>
+          <p style="color: #059669; font-weight: bold;">✅ Ready to send contract emails!</p>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(testMail);
+
+    console.log("[Email] Titan test email sent successfully:", info.messageId);
 
     res.status(200).json({
       success: true,
-      message: "Email configuration is working correctly",
+      message: "Titan email configuration is working correctly",
+      messageId: info.messageId,
     });
   } catch (error) {
-    console.error("[Email] Configuration test failed:", error);
+    console.error("[Email] Titan configuration test failed:", error);
 
-    let errorMessage = "Email configuration failed";
+    let errorMessage = "Titan email configuration failed";
     if (error.code === "EAUTH") {
       errorMessage =
-        "Email authentication failed. Check your email credentials.";
+        "Titan email authentication failed. Check your email credentials.";
     } else if (error.code === "ECONNECTION") {
       errorMessage =
-        "Cannot connect to email server. Check your internet connection.";
+        "Cannot connect to Titan email server. Check your internet connection.";
     }
 
     res.status(500).json({
       success: false,
       message: errorMessage,
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
-  }
-});
-
-// Send test email
-router.post("/test-send", async (req, res) => {
-  try {
-    const { testEmail } = req.body;
-
-    if (!testEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Test email address is required",
-      });
-    }
-
-    console.log("[Email] Sending test email to:", testEmail);
-
-    const transporter = createEmailTransporter();
-
-    const mailOptions = {
-      from: {
-        name: "My Future Life Bali - Test",
-        address: process.env.EMAIL_USER || "youremail@gmail.com",
-      },
-      to: testEmail,
-      subject: "Email Service Test - My Future Life Bali",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #7c3aed;">Email Service Test</h2>
-          <p>This is a test email from My Future Life Bali email service.</p>
-          <p>If you received this email, the email configuration is working correctly!</p>
-          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-            Test sent at: ${new Date().toLocaleString()}
-          </p>
-        </div>
-      `,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("[Email] Test email sent successfully:", info.messageId);
-
-    res.status(200).json({
-      success: true,
-      message: "Test email sent successfully",
-      messageId: info.messageId,
-      recipient: testEmail,
-    });
-  } catch (error) {
-    console.error("[Email] Test email failed:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send test email",
-      error: error.message,
     });
   }
 });

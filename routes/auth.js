@@ -1,11 +1,67 @@
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const User = require("../models/User"); // Import User model
 
 // Use environment variable for JWT secret or fallback
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_here";
+
+// Create Titan email transporter
+const createEmailTransporter = () => {
+  return nodemailer.createTransport({
+    host: "smtpout.secureserver.net", // GoDaddy's SMTP server for Titan
+    port: 587, // TLS port
+    secure: false, // Use TLS
+    auth: {
+      user: "info@futurelifebali.com",
+      pass: "PASSnew123#", // Hardcoded Titan email password
+    },
+    tls: {
+      ciphers: "SSLv3",
+      rejectUnauthorized: false,
+    },
+  });
+};
+
+// Send OTP email function
+const sendOtpEmail = async (email, otp) => {
+  try {
+    const transporter = createEmailTransporter();
+
+    const mailOptions = {
+      from: {
+        name: "My Future Life Bali",
+        address: "info@futurelifebali.com",
+      },
+      to: email,
+      subject: "Your Login Verification Code",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #7c3aed; text-align: center;">Your Verification Code</h2>
+          <div style="background: #f8fafc; padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0;">
+            <h1 style="font-size: 36px; color: #374151; margin: 0; letter-spacing: 8px;">${otp}</h1>
+          </div>
+          <p style="color: #6b7280; text-align: center;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; text-align: center;">If you didn't request this code, please ignore this email.</p>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 14px; text-align: center;">
+            My Future Life Bali<br>
+            Your trusted partner for Bali villa investments
+          </p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("OTP email sent successfully to:", email);
+    return true;
+  } catch (error) {
+    console.error("Error sending OTP email:", error);
+    throw new Error("Failed to send verification email");
+  }
+};
 
 module.exports = () => {
   const router = require("express").Router();
@@ -206,16 +262,27 @@ module.exports = () => {
             success: true,
             message: "OTP generated successfully",
             otp: otp,
-            note: "WhatsApp service unavailable. Use this OTP for verification.",
           });
         }
       } else {
-        // For email, just return OTP - frontend will handle email sending
-        res.json({
-          success: true,
-          otp: otp,
-          message: "OTP generated successfully",
-        });
+        // Send email via Titan
+        try {
+          await sendOtpEmail(email, otp);
+          res.json({
+            success: true,
+            message: "OTP sent successfully to your email",
+          });
+        } catch (emailError) {
+          console.error("Email sending failed:", emailError.message);
+
+          // Return OTP as fallback
+          res.json({
+            success: true,
+            message: "OTP generated successfully",
+            otp: otp,
+            note: "Email service temporarily unavailable. Use this OTP for verification.",
+          });
+        }
       }
     } catch (error) {
       console.error("OTP generation error:", error.message);
@@ -288,7 +355,6 @@ module.exports = () => {
         {
           lastLogin: new Date(),
           isVerified: true,
-
           deviceInfo: req.headers["user-agent"] || "unknown",
         },
         { new: true }
@@ -457,6 +523,64 @@ module.exports = () => {
       res.status(500).json({
         success: false,
         message: "Logout failed",
+      });
+    }
+  });
+
+  // Test email configuration
+  router.post("/test-email", async (req, res) => {
+    try {
+      console.log("[Auth] Testing email configuration...");
+
+      const transporter = createEmailTransporter();
+
+      // Verify transporter
+      await transporter.verify();
+
+      // Send test email
+      const testMail = {
+        from: {
+          name: "My Future Life Bali - Auth Test",
+          address: "info@futurelifebali.com",
+        },
+        to: "bassam.agi@gmail.com", // Send test to admin email
+        subject: "Auth Email Configuration Test",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #7c3aed;">Auth Email Test Successful!</h2>
+            <p>Your authentication email configuration is working correctly.</p>
+            <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+            <p style="color: #059669; font-weight: bold;">✅ Ready to send OTP emails!</p>
+          </div>
+        `,
+      };
+
+      const info = await transporter.sendMail(testMail);
+
+      console.log("[Auth] Test email sent successfully:", info.messageId);
+
+      res.status(200).json({
+        success: true,
+        message: "Auth email configuration is working correctly",
+        messageId: info.messageId,
+      });
+    } catch (error) {
+      console.error("[Auth] Email configuration test failed:", error);
+
+      let errorMessage = "Auth email configuration failed";
+      if (error.code === "EAUTH") {
+        errorMessage =
+          "Email authentication failed. Check your email credentials.";
+      } else if (error.code === "ECONNECTION") {
+        errorMessage =
+          "Cannot connect to email server. Check your internet connection.";
+      }
+
+      res.status(500).json({
+        success: false,
+        message: errorMessage,
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   });
