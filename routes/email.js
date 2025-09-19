@@ -7,14 +7,16 @@ const router = express.Router();
 
 const createEmailTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
-    port: 465, // Change from 587 to 465
-    secure: true, // Change to true for port 465
+    host: "relay-hosting.secureserver.net", // Alternative GoDaddy SMTP
+    port: 25, // Try port 25
+    secure: false,
     auth: {
       user: "info@futurelifebali.com",
       pass: "PASSnew123#",
     },
-    // Remove TLS config for port 465
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 };
 // Send contract PDF email to multiple recipients
