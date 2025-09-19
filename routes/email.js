@@ -7,12 +7,15 @@ const router = express.Router();
 
 const createEmailTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
+    host: "smtp.titan.email", // ✅ Correct Titan SMTP
     port: 587, // TLS port
-    secure: false, // false for 587
+    secure: false, // STARTTLS
     auth: {
-      user: "realahmedali4@gmail.com", // your Brevo account email
-      pass: "98PIzXAft7yvaZJC", // your SMTP key
+      user: "info@futurelifebali.com",
+      pass: "PASSnew123#", // ⚠️ move to ENV in production
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 };
