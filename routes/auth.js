@@ -1,64 +1,94 @@
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const rateLimit = require("express-rate-limit");
 const User = require("../models/User"); // Import User model
 
 // Use environment variable for JWT secret or fallback
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_here";
 
-// Create Titan email transporter
-const createEmailTransporter = () => {
-  return nodemailer.createTransport({
-    host: "smtpout.secureserver.net", // GoDaddy's SMTP server for Titan
-    port: 587, // TLS port
-    secure: false, // Use TLS
-    auth: {
-      user: "info@futurelifebali.com",
-      pass: "PASSnew123#", // Hardcoded Titan email password
-    },
-    tls: {
-      ciphers: "SSLv3",
-      rejectUnauthorized: false,
-    },
-  });
-};
+// Initialize Resend with API key
+const resend = new Resend("re_hBX59w3u_53X3xJy28Dx96evvJSNV6Fek");
 
-// Send OTP email function
+// Send OTP email function using Resend
 const sendOtpEmail = async (email, otp) => {
   try {
-    const transporter = createEmailTransporter();
+    console.log("Sending OTP email via Resend to:", email);
 
-    const mailOptions = {
-      from: {
-        name: "My Future Life Bali",
-        address: "info@futurelifebali.com",
-      },
-      to: email,
+    const emailData = {
+      from: "My Future Life Bali <info@futurelifebali.com>",
+      to: [email],
       subject: "Your Login Verification Code",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #7c3aed; text-align: center;">Your Verification Code</h2>
-          <div style="background: #f8fafc; padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0;">
-            <h1 style="font-size: 36px; color: #374151; margin: 0; letter-spacing: 8px;">${otp}</h1>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verification Code</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background: white;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 30px; text-align: center; color: white;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Verification Code</h1>
+              <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">My Future Life Bali Login</p>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #374151; margin-top: 0; font-size: 22px;">Your Verification Code</h2>
+              
+              <p style="color: #6b7280; line-height: 1.6; font-size: 16px; margin: 20px 0;">
+                Please use the following verification code to complete your login:
+              </p>
+              
+              <!-- OTP Code Box -->
+              <div style="background: #f8fafc; padding: 30px; border-radius: 12px; margin: 30px 0; border: 2px dashed #7c3aed;">
+                <h1 style="font-size: 48px; color: #374151; margin: 0; letter-spacing: 8px; font-weight: bold;">${otp}</h1>
+              </div>
+
+              <!-- Important Notice -->
+              <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 30px 0; border-left: 4px solid #f59e0b;">
+                <p style="color: #92400e; margin: 0; font-size: 14px; font-weight: bold;">
+                  ⏰ This code will expire in 10 minutes
+                </p>
+              </div>
+
+              <p style="color: #6b7280; line-height: 1.6; font-size: 14px; margin: 20px 0;">
+                If you didn't request this code, please ignore this email or contact our support team.
+              </p>
+              
+              <!-- Contact Info -->
+              <div style="margin: 30px 0;">
+                <p style="color: #9ca3af; font-size: 14px; margin: 5px 0;">
+                  Need help? Contact us at:
+                </p>
+                <p style="color: #7c3aed; font-size: 14px; margin: 5px 0; font-weight: bold;">
+                  📧 info@futurelifebali.com | 📱 WhatsApp: +62 818-1818-5522
+                </p>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.4;">
+                My Future Life Bali<br>
+                Your trusted partner for Bali villa investments
+              </p>
+            </div>
           </div>
-          <p style="color: #6b7280; text-align: center;">This code will expire in 10 minutes.</p>
-          <p style="color: #6b7280; text-align: center;">If you didn't request this code, please ignore this email.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="color: #9ca3af; font-size: 14px; text-align: center;">
-            My Future Life Bali<br>
-            Your trusted partner for Bali villa investments
-          </p>
-        </div>
+        </body>
+        </html>
       `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log("OTP email sent successfully to:", email);
+    const result = await resend.emails.send(emailData);
+    console.log("OTP email sent successfully via Resend:", result.id);
     return true;
   } catch (error) {
-    console.error("Error sending OTP email:", error);
+    console.error("Error sending OTP email via Resend:", error);
     throw new Error("Failed to send verification email");
   }
 };
@@ -94,8 +124,8 @@ module.exports = () => {
 
   // UltraMsg credentials
   const ULTRAMSG_INSTANCE_ID =
-    process.env.ULTRAMSG_INSTANCE_ID || "instance100246";
-  const ULTRAMSG_TOKEN = process.env.ULTRAMSG_TOKEN || "9vj68bxsruo8xd5o";
+    process.env.ULTRAMSG_INSTANCE_ID || "instance143389";
+  const ULTRAMSG_TOKEN = process.env.ULTRAMSG_TOKEN || "e5qifsg0mzq0ylng";
   const ULTRAMSG_API_URL = `https://api.ultramsg.com/${ULTRAMSG_INSTANCE_ID}/messages/chat`;
 
   // Rate limiting for OTP generation
@@ -265,7 +295,7 @@ module.exports = () => {
           });
         }
       } else {
-        // Send email via Titan
+        // Send email via Resend
         try {
           await sendOtpEmail(email, otp);
           res.json({
@@ -527,53 +557,50 @@ module.exports = () => {
     }
   });
 
-  // Test email configuration
+  // Test Resend email configuration
   router.post("/test-email", async (req, res) => {
     try {
-      console.log("[Auth] Testing email configuration...");
-
-      const transporter = createEmailTransporter();
-
-      // Verify transporter
-      await transporter.verify();
+      console.log("[Auth] Testing Resend email configuration...");
 
       // Send test email
-      const testMail = {
-        from: {
-          name: "My Future Life Bali - Auth Test",
-          address: "info@futurelifebali.com",
-        },
-        to: "bassam.agi@gmail.com", // Send test to admin email
-        subject: "Auth Email Configuration Test",
+      const testEmailData = {
+        from: "My Future Life Bali - Auth Test <info@futurelifebali.com>",
+        to: ["bassam.agi@gmail.com"], // Send test to admin email
+        subject: "Auth Email Configuration Test - Resend API",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #7c3aed;">Auth Email Test Successful!</h2>
-            <p>Your authentication email configuration is working correctly.</p>
-            <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+            <p>Your authentication email configuration with Resend API is working correctly.</p>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Configuration Details:</h3>
+              <ul>
+                <li><strong>Email Service:</strong> Resend API</li>
+                <li><strong>From Email:</strong> info@futurelifebali.com</li>
+                <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
+              </ul>
+            </div>
             <p style="color: #059669; font-weight: bold;">✅ Ready to send OTP emails!</p>
           </div>
         `,
       };
 
-      const info = await transporter.sendMail(testMail);
+      const result = await resend.emails.send(testEmailData);
 
-      console.log("[Auth] Test email sent successfully:", info.messageId);
+      console.log("[Auth] Resend test email sent successfully:", result.id);
 
       res.status(200).json({
         success: true,
-        message: "Auth email configuration is working correctly",
-        messageId: info.messageId,
+        message: "Auth email configuration with Resend is working correctly",
+        messageId: result.id,
       });
     } catch (error) {
-      console.error("[Auth] Email configuration test failed:", error);
+      console.error("[Auth] Resend email configuration test failed:", error);
 
-      let errorMessage = "Auth email configuration failed";
-      if (error.code === "EAUTH") {
-        errorMessage =
-          "Email authentication failed. Check your email credentials.";
-      } else if (error.code === "ECONNECTION") {
-        errorMessage =
-          "Cannot connect to email server. Check your internet connection.";
+      let errorMessage = "Auth email configuration with Resend failed";
+      if (error.message?.includes("API key")) {
+        errorMessage = "Resend API key is invalid or expired.";
+      } else if (error.message?.includes("rate limit")) {
+        errorMessage = "Rate limit exceeded. Please try again later.";
       }
 
       res.status(500).json({
