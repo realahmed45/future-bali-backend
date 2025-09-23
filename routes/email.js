@@ -1,4 +1,4 @@
-// Backend Email Service - Modified for Resend API
+// Backend Email Service - Modified for Resend API with Clean Footer
 // File: routes/email.js
 
 const express = require("express");
@@ -79,7 +79,7 @@ router.post("/send-contract", async (req, res) => {
 
     console.log("[Email] Sending to recipients:", recipients);
 
-    // Email content for customer
+    // Clean Email content for customer
     const customerEmailData = {
       from: "My Future Life Bali <info@futurelifebali.com>",
       to: [customerEmail],
@@ -94,86 +94,63 @@ router.post("/send-contract", async (req, res) => {
         </head>
         <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
           <div style="max-width: 600px; margin: 0 auto; background: white;">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 40px 30px; text-align: center; color: white;">
-              <h1 style="margin: 0; font-size: 32px; font-weight: bold;">Contract Ready!</h1>
-              <p style="margin: 15px 0 0 0; font-size: 18px; opacity: 0.9;">Your Bali Villa Investment Agreement</p>
-            </div>
             
             <!-- Main Content -->
-            <div style="padding: 40px 30px;">
-              <h2 style="color: #374151; margin-top: 0; font-size: 24px;">Hello ${
-                customerName || "Valued Customer"
-              },</h2>
+            <div style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #374151; margin-top: 0; font-size: 24px; margin-bottom: 30px;">Your Villa Investment Contract</h2>
               
               <p style="color: #6b7280; line-height: 1.8; font-size: 16px; margin: 20px 0;">
-                Congratulations on your investment in your future Bali villa! Your official contract has been prepared and is attached to this email as a PDF document.
+                Hello ${customerName || "Valued Customer"},<br><br>
+                Your official villa investment contract has been prepared and is attached as a PDF document.
+                Please review it carefully and keep it for your records.
               </p>
               
-              <!-- Contract Details Box -->
-              <div style="background: #f8fafc; padding: 25px; border-radius: 12px; border-left: 5px solid #7c3aed; margin: 30px 0;">
-                <h3 style="color: #7c3aed; margin-top: 0; font-size: 18px; font-weight: bold;">📋 Contract Details:</h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Order ID:</td>
-                    <td style="padding: 8px 0; color: #374151;">${orderId}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Document:</td>
-                    <td style="padding: 8px 0; color: #374151;">Villa Investment Contract (PDF)</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Generated:</td>
-                    <td style="padding: 8px 0; color: #374151;">${new Date().toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      }
-                    )}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">File Size:</td>
-                    <td style="padding: 8px 0; color: #374151;">${pdfSizeMB.toFixed(
-                      2
-                    )} MB</td>
-                  </tr>
-                </table>
-              </div>
-
-              <!-- Important Notice -->
-              <div style="background: #dbeafe; padding: 25px; border-radius: 12px; margin: 30px 0;">
-                <h3 style="color: #1d4ed8; margin-top: 0; font-size: 18px; font-weight: bold;">📎 Important Instructions:</h3>
-                <ul style="color: #374151; line-height: 1.8; margin: 0; padding-left: 20px;">
-                  <li>Please review the attached contract carefully and thoroughly</li>
-                  <li>Save this document in a secure location for your records</li>
-                  <li>If you have any questions, contact us immediately</li>
-                  <li>The contract contains all terms, conditions, and your investment details</li>
-                </ul>
-              </div>
-
-              <!-- Contact Information -->
-              <div style="text-align: center; margin: 40px 0;">
-                <div style="background: #7c3aed; color: white; padding: 20px; border-radius: 25px; display: inline-block;">
-                  <h3 style="margin: 0 0 10px 0; font-size: 18px;">Questions? Contact Us:</h3>
-                  <p style="margin: 5px 0; font-size: 16px; font-weight: bold;">📞 WhatsApp: +62 818-1818-5522</p>
-                  <p style="margin: 5px 0; font-size: 16px;">📧 Email: info@futurelifebali.com</p>
-                </div>
+              <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: left;">
+                <p style="margin: 0; color: #374151; font-weight: bold;">Order ID: ${orderId}</p>
+                <p style="margin: 5px 0 0 0; color: #6b7280;">Generated: ${new Date().toLocaleDateString(
+                  "en-US",
+                  {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  }
+                )}</p>
               </div>
 
               <p style="color: #6b7280; line-height: 1.8; font-size: 16px;">
-                Thank you for choosing My Future Life Bali for your villa investment. We look forward to helping you build your dream future in paradise.
+                If you have any questions about your contract, please don't hesitate to contact us.
               </p>
             </div>
             
             <!-- Footer -->
-            <div style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #9ca3af; font-size: 14px; margin: 0; line-height: 1.6;">
-                This email was sent from My Future Life Bali<br>
-                Your trusted partner for Bali villa investments<br>
-                <strong>Please keep this contract for your records</strong>
-              </p>
+            <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
+              <!-- Logo -->
+              <div style="margin-bottom: 20px;">
+                <img src="cid:logo" alt="Future Life Bali Logo" style="height: 60px; width: auto;">
+              </div>
+              
+              <!-- Signature in center -->
+              <div style="margin-bottom: 20px;">
+                <img src="cid:signature" alt="Signature" style="height: 40px; width: auto;">
+              </div>
+              
+              <!-- Company Info -->
+              <div style="margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              </div>
+              
+              <!-- WhatsApp Button -->
+              <div style="margin-bottom: 20px;">
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                  <span style="font-size: 16px;">💬</span>
+                  Connect with us
+                </a>
+              </div>
+              
+              <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+              </div>
             </div>
           </div>
         </body>
