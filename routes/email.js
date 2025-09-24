@@ -161,28 +161,27 @@ router.post("/send-contract", async (req, res) => {
               </p>
             </div>
             
-            <!-- Footer -->
-            <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
-              <!-- Logo with fallback -->
-              <div style="margin-bottom: 25px;">
-                <!--[if mso]>
-                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="200" height="60" style="width: 200px; height: 60px; display: block; margin: 0 auto;">
-                <![endif]-->
-                <!--[if !mso]><!-->
-                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px; display: block; margin: 0 auto; object-fit: contain;">
-                <!--<![endif]-->
-              </div>
-              
-              <!-- Signature with fallback -->
-              <div style="margin-bottom: 25px;">
-                <!--[if mso]>
-                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="150" height="40" style="width: 150px; height: 40px; display: block; margin: 0 auto;">
-                <![endif]-->
-                <!--[if !mso]><!-->
-                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 40px; width: auto; max-width: 150px; display: block; margin: 0 auto; object-fit: contain;">
-                <!--<![endif]-->
-              </div>
-              
+          <!-- Footer -->
+<div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
+  <!-- Logo with fallback -->
+  <div style="margin-bottom: 25px;">
+    <!--[if mso]>
+    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="140" height="140" style="width: 140px; height: 140px; display: block; margin: 0 auto;">
+    <![endif]-->
+    <!--[if !mso]><!-->
+    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 140px; width: 140px; max-width: 140px; display: block; margin: 0 auto; object-fit: contain;">
+    <!--<![endif]-->
+  </div>
+  
+  <!-- Signature with fallback -->
+  <div style="margin-bottom: 25px;">
+    <!--[if mso]>
+    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="130" height="130" style="width: 130px; height: 130px; display: block; margin: 0 auto;">
+    <![endif]-->
+    <!--[if !mso]><!-->
+    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 130px; width: 130px; max-width: 130px; display: block; margin: 0 auto; object-fit: contain;">
+    <!--<![endif]-->
+  </div>
               <!-- Company Info -->
               <div style="margin-bottom: 25px;">
                 <p style="margin: 0; font-size: 18px; font-weight: bold; color: #FFD700; line-height: 1.2;">Future Life (PT)</p>
