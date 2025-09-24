@@ -1,4 +1,4 @@
-// Backend Email Service - Modified for Resend API with Clean Footer
+// Backend Email Service - Optimized with Better Image Display
 // File: routes/email.js
 
 const express = require("express");
@@ -91,13 +91,52 @@ router.post("/send-contract", async (req, res) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Contract Ready</title>
+          <!--[if mso]>
+          <noscript>
+            <xml>
+              <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+              </o:OfficeDocumentSettings>
+            </xml>
+          </noscript>
+          <![endif]-->
+          <style>
+            @media only screen and (max-width: 600px) {
+              .container { width: 100% !important; }
+              .content { padding: 20px !important; }
+              .logo-img { height: 50px !important; }
+              .signature-img { height: 35px !important; }
+            }
+            
+            /* Ensure images display properly */
+            img {
+              border: 0;
+              display: block;
+              outline: none;
+              text-decoration: none;
+              height: auto;
+              width: auto;
+              font-size: 13px;
+            }
+            
+            /* Fix for Gmail and other clients */
+            u + .body .container { width: 600px !important; }
+            .ExternalClass { width: 100%; }
+            .ExternalClass, 
+            .ExternalClass p, 
+            .ExternalClass span, 
+            .ExternalClass font, 
+            .ExternalClass td, 
+            .ExternalClass div { line-height: 100%; }
+          </style>
         </head>
-        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-          <div style="max-width: 600px; margin: 0 auto; background: white;">
+        <body class="body" style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f5f5; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+          <div class="container" style="max-width: 600px; margin: 0 auto; background: white;">
             
             <!-- Main Content -->
-            <div style="padding: 40px 30px; text-align: center;">
-              <h2 style="color: #374151; margin-top: 0; font-size: 24px; margin-bottom: 30px;">Your Villa Investment Contract</h2>
+            <div class="content" style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #374151; margin-top: 0; font-size: 24px; margin-bottom: 30px; font-weight: bold;">Your Villa Investment Contract</h2>
               
               <p style="color: #6b7280; line-height: 1.8; font-size: 16px; margin: 20px 0;">
                 Hello ${customerName || "Valued Customer"},<br><br>
@@ -124,32 +163,49 @@ router.post("/send-contract", async (req, res) => {
             
             <!-- Footer -->
             <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
-              <!-- Logo -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
+              <!-- Logo with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="200" height="60" style="width: 200px; height: 60px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
-              <!-- Signature in center -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
+              <!-- Signature with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="150" height="40" style="width: 150px; height: 40px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 40px; width: auto; max-width: 150px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
               <!-- Company Info -->
-              <div style="margin-bottom: 20px;">
-                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
-                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              <div style="margin-bottom: 25px;">
+                <p style="margin: 0; font-size: 18px; font-weight: bold; color: #FFD700; line-height: 1.2;">Future Life (PT)</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #CCCCCC; line-height: 1.4;">Welcome to My Future Life Bali Family</p>
               </div>
               
               <!-- WhatsApp Button -->
-              <div style="margin-bottom: 20px;">
-                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
-                  <span style="font-size: 16px;">💬</span>
-                  Connect with us
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://wa.me/6287744877888" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="57%" stroke="f" fillcolor="#25D366">
+                  <w:anchorlock/>
+                  <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">💬 Connect with us</center>
+                </v:roundrect>
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white !important; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 14px; line-height: 1.2;">
+                  <span style="font-size: 16px;">💬</span> Connect with us
                 </a>
+                <!--<![endif]-->
               </div>
               
               <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
-                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+                <p style="margin: 0; font-size: 12px; color: #999999;">Web Version</p>
               </div>
             </div>
           </div>
@@ -176,13 +232,50 @@ router.post("/send-contract", async (req, res) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>New Contract Generated</title>
+          <!--[if mso]>
+          <noscript>
+            <xml>
+              <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+              </o:OfficeDocumentSettings>
+            </xml>
+          </noscript>
+          <![endif]-->
+          <style>
+            @media only screen and (max-width: 600px) {
+              .container { width: 100% !important; }
+              .content { padding: 20px !important; }
+              .logo-img { height: 50px !important; }
+              .signature-img { height: 35px !important; }
+            }
+            
+            img {
+              border: 0;
+              display: block;
+              outline: none;
+              text-decoration: none;
+              height: auto;
+              width: auto;
+              font-size: 13px;
+            }
+            
+            u + .body .container { width: 600px !important; }
+            .ExternalClass { width: 100%; }
+            .ExternalClass, 
+            .ExternalClass p, 
+            .ExternalClass span, 
+            .ExternalClass font, 
+            .ExternalClass td, 
+            .ExternalClass div { line-height: 100%; }
+          </style>
         </head>
-        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-          <div style="max-width: 600px; margin: 0 auto; background: white;">
+        <body class="body" style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f5f5; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+          <div class="container" style="max-width: 600px; margin: 0 auto; background: white;">
             
             <!-- Main Content -->
-            <div style="padding: 40px 30px;">
-              <h2 style="color: #059669; margin-top: 0; font-size: 24px; margin-bottom: 30px;">New Contract Generated</h2>
+            <div class="content" style="padding: 40px 30px;">
+              <h2 style="color: #059669; margin-top: 0; font-size: 24px; margin-bottom: 30px; font-weight: bold;">New Contract Generated</h2>
               
               <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <p style="margin: 0 0 10px 0; color: #374151;"><strong>Order ID:</strong> ${orderId}</p>
@@ -200,32 +293,49 @@ router.post("/send-contract", async (req, res) => {
             
             <!-- Footer -->
             <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
-              <!-- Logo -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
+              <!-- Logo with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="200" height="60" style="width: 200px; height: 60px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
-              <!-- Signature in center -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
+              <!-- Signature with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="150" height="40" style="width: 150px; height: 40px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 40px; width: auto; max-width: 150px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
               <!-- Company Info -->
-              <div style="margin-bottom: 20px;">
-                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
-                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              <div style="margin-bottom: 25px;">
+                <p style="margin: 0; font-size: 18px; font-weight: bold; color: #FFD700; line-height: 1.2;">Future Life (PT)</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #CCCCCC; line-height: 1.4;">Welcome to My Future Life Bali Family</p>
               </div>
               
               <!-- WhatsApp Button -->
-              <div style="margin-bottom: 20px;">
-                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
-                  <span style="font-size: 16px;">💬</span>
-                  Connect with us
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://wa.me/6287744877888" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="57%" stroke="f" fillcolor="#25D366">
+                  <w:anchorlock/>
+                  <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">💬 Connect with us</center>
+                </v:roundrect>
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white !important; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 14px; line-height: 1.2;">
+                  <span style="font-size: 16px;">💬</span> Connect with us
                 </a>
+                <!--<![endif]-->
               </div>
               
               <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
-                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+                <p style="margin: 0; font-size: 12px; color: #999999;">Web Version</p>
               </div>
             </div>
           </div>
@@ -340,60 +450,114 @@ router.post("/test-resend", async (req, res) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Email Test</title>
+          <!--[if mso]>
+          <noscript>
+            <xml>
+              <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+              </o:OfficeDocumentSettings>
+            </xml>
+          </noscript>
+          <![endif]-->
+          <style>
+            @media only screen and (max-width: 600px) {
+              .container { width: 100% !important; }
+              .content { padding: 20px !important; }
+              .logo-img { height: 50px !important; }
+              .signature-img { height: 35px !important; }
+            }
+            
+            img {
+              border: 0;
+              display: block;
+              outline: none;
+              text-decoration: none;
+              height: auto;
+              width: auto;
+              font-size: 13px;
+            }
+            
+            u + .body .container { width: 600px !important; }
+            .ExternalClass { width: 100%; }
+            .ExternalClass, 
+            .ExternalClass p, 
+            .ExternalClass span, 
+            .ExternalClass font, 
+            .ExternalClass td, 
+            .ExternalClass div { line-height: 100%; }
+          </style>
         </head>
-        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-          <div style="max-width: 600px; margin: 0 auto; background: white;">
+        <body class="body" style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f5f5; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+          <div class="container" style="max-width: 600px; margin: 0 auto; background: white;">
             
             <!-- Main Content -->
-            <div style="padding: 40px 30px;">
-              <h2 style="color: #7c3aed; margin-top: 0; font-size: 24px; margin-bottom: 30px;">Resend Email Test Successful!</h2>
+            <div class="content" style="padding: 40px 30px;">
+              <h2 style="color: #7c3aed; margin-top: 0; font-size: 24px; margin-bottom: 30px; font-weight: bold;">Resend Email Test Successful!</h2>
               
               <p style="color: #6b7280; line-height: 1.6; margin-bottom: 20px;">
                 This test email confirms that your Resend email configuration is working correctly.
               </p>
               
               <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #374151;">Configuration Details:</h3>
-                <ul style="color: #6b7280; line-height: 1.6;">
-                  <li><strong>Email Service:</strong> Resend API</li>
-                  <li><strong>From Email:</strong> info@futurelifebali.com</li>
-                  <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
+                <h3 style="margin-top: 0; color: #374151; font-weight: bold;">Configuration Details:</h3>
+                <ul style="color: #6b7280; line-height: 1.6; padding-left: 20px;">
+                  <li style="margin-bottom: 8px;"><strong>Email Service:</strong> Resend API</li>
+                  <li style="margin-bottom: 8px;"><strong>From Email:</strong> info@futurelifebali.com</li>
+                  <li style="margin-bottom: 8px;"><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
                 </ul>
               </div>
               
-              <p style="color: #059669; font-weight: bold; text-align: center;">
+              <p style="color: #059669; font-weight: bold; text-align: center; font-size: 18px;">
                 ✅ Ready to send contract emails!
               </p>
             </div>
             
             <!-- Footer -->
             <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
-              <!-- Logo -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
+              <!-- Logo with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="200" height="60" style="width: 200px; height: 60px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
-              <!-- Signature in center -->
-              <div style="margin-bottom: 20px;">
-                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
+              <!-- Signature with fallback -->
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="150" height="40" style="width: 150px; height: 40px; display: block; margin: 0 auto;">
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 40px; width: auto; max-width: 150px; display: block; margin: 0 auto; object-fit: contain;">
+                <!--<![endif]-->
               </div>
               
               <!-- Company Info -->
-              <div style="margin-bottom: 20px;">
-                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
-                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              <div style="margin-bottom: 25px;">
+                <p style="margin: 0; font-size: 18px; font-weight: bold; color: #FFD700; line-height: 1.2;">Future Life (PT)</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #CCCCCC; line-height: 1.4;">Welcome to My Future Life Bali Family</p>
               </div>
               
               <!-- WhatsApp Button -->
-              <div style="margin-bottom: 20px;">
-                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
-                  <span style="font-size: 16px;">💬</span>
-                  Connect with us
+              <div style="margin-bottom: 25px;">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://wa.me/6287744877888" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="57%" stroke="f" fillcolor="#25D366">
+                  <w:anchorlock/>
+                  <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">💬 Connect with us</center>
+                </v:roundrect>
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white !important; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 14px; line-height: 1.2;">
+                  <span style="font-size: 16px;">💬</span> Connect with us
                 </a>
+                <!--<![endif]-->
               </div>
               
               <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
-                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+                <p style="margin: 0; font-size: 12px; color: #999999;">Web Version</p>
               </div>
             </div>
           </div>
