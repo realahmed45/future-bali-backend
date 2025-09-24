@@ -166,20 +166,20 @@ router.post("/send-contract", async (req, res) => {
   <!-- Logo with fallback -->
   <div style="margin-bottom: 25px;">
     <!--[if mso]>
-    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="140" height="140" style="width: 140px; height: 140px; display: block; margin: 0 auto;">
+    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" width="100%" height="140" style="width: 100%; height: 140px; display: block; margin: 0 auto;">
     <![endif]-->
     <!--[if !mso]><!-->
-    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 140px; width: 140px; max-width: 140px; display: block; margin: 0 auto; object-fit: contain;">
+    <img class="logo-img" src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 140px; width: 100%; max-width: 100%; display: block; margin: 0 auto; object-fit: contain;">
     <!--<![endif]-->
   </div>
   
   <!-- Signature with fallback -->
   <div style="margin-bottom: 25px;">
     <!--[if mso]>
-    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="130" height="130" style="width: 130px; height: 130px; display: block; margin: 0 auto;">
+    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" width="100%" height="130" style="width: 100%; height: 130px; display: block; margin: 0 auto;">
     <![endif]-->
     <!--[if !mso]><!-->
-    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 130px; width: 130px; max-width: 130px; display: block; margin: 0 auto; object-fit: contain;">
+    <img class="signature-img" src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Director Signature" style="height: 130px; width: 100%; max-width: 100%; display: block; margin: 0 auto; object-fit: contain;">
     <!--<![endif]-->
   </div>
               <!-- Company Info -->
