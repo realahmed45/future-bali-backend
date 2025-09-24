@@ -126,12 +126,12 @@ router.post("/send-contract", async (req, res) => {
             <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
               <!-- Logo -->
               <div style="margin-bottom: 20px;">
-                <img src="cid:logo" alt="Future Life Bali Logo" style="height: 60px; width: auto;">
+                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
               </div>
               
               <!-- Signature in center -->
               <div style="margin-bottom: 20px;">
-                <img src="cid:signature" alt="Signature" style="height: 40px; width: auto;">
+                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
               </div>
               
               <!-- Company Info -->
@@ -170,14 +170,67 @@ router.post("/send-contract", async (req, res) => {
       to: ["bassam.agi@gmail.com", "Futurelifebali@gmail.com"],
       subject: `New Contract Generated - Order #${orderId} - ${customerName}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #059669;">New Contract Generated</h2>
-          <p><strong>Order ID:</strong> ${orderId}</p>
-          <p><strong>Customer:</strong> ${customerName || "N/A"}</p>
-          <p><strong>Email:</strong> ${customerEmail}</p>
-          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-          <p>Contract has been sent to customer and is attached here for records.</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Contract Generated</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background: white;">
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px;">
+              <h2 style="color: #059669; margin-top: 0; font-size: 24px; margin-bottom: 30px;">New Contract Generated</h2>
+              
+              <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 10px 0; color: #374151;"><strong>Order ID:</strong> ${orderId}</p>
+                <p style="margin: 0 0 10px 0; color: #374151;"><strong>Customer:</strong> ${
+                  customerName || "N/A"
+                }</p>
+                <p style="margin: 0 0 10px 0; color: #374151;"><strong>Email:</strong> ${customerEmail}</p>
+                <p style="margin: 0; color: #374151;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+              
+              <p style="color: #6b7280; line-height: 1.6;">
+                Contract has been sent to customer and is attached here for records.
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
+              <!-- Logo -->
+              <div style="margin-bottom: 20px;">
+                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
+              </div>
+              
+              <!-- Signature in center -->
+              <div style="margin-bottom: 20px;">
+                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
+              </div>
+              
+              <!-- Company Info -->
+              <div style="margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              </div>
+              
+              <!-- WhatsApp Button -->
+              <div style="margin-bottom: 20px;">
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                  <span style="font-size: 16px;">💬</span>
+                  Connect with us
+                </a>
+              </div>
+              
+              <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
       `,
       attachments: [
         {
@@ -281,19 +334,71 @@ router.post("/test-resend", async (req, res) => {
       to: ["bassam.agi@gmail.com"],
       subject: "Resend Email Configuration Test",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #7c3aed;">Resend Email Test Successful!</h2>
-          <p>This test email confirms that your Resend email configuration is working correctly.</p>
-          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Configuration Details:</h3>
-            <ul>
-              <li><strong>Email Service:</strong> Resend API</li>
-              <li><strong>From Email:</strong> info@futurelifebali.com</li>
-              <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
-            </ul>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Email Test</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background: white;">
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px;">
+              <h2 style="color: #7c3aed; margin-top: 0; font-size: 24px; margin-bottom: 30px;">Resend Email Test Successful!</h2>
+              
+              <p style="color: #6b7280; line-height: 1.6; margin-bottom: 20px;">
+                This test email confirms that your Resend email configuration is working correctly.
+              </p>
+              
+              <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #374151;">Configuration Details:</h3>
+                <ul style="color: #6b7280; line-height: 1.6;">
+                  <li><strong>Email Service:</strong> Resend API</li>
+                  <li><strong>From Email:</strong> info@futurelifebali.com</li>
+                  <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
+                </ul>
+              </div>
+              
+              <p style="color: #059669; font-weight: bold; text-align: center;">
+                ✅ Ready to send contract emails!
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #2D2D2D; padding: 40px 30px; text-align: center; color: white;">
+              <!-- Logo -->
+              <div style="margin-bottom: 20px;">
+                <img src="https://i.ibb.co/d0xQGJqV/logo.png" alt="Future Life Bali Logo" style="height: 60px; width: auto; max-width: 200px;">
+              </div>
+              
+              <!-- Signature in center -->
+              <div style="margin-bottom: 20px;">
+                <img src="https://i.ibb.co/SXyY8MQ8/signature.png" alt="Signature" style="height: 40px; width: auto; max-width: 150px;">
+              </div>
+              
+              <!-- Company Info -->
+              <div style="margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 16px; font-weight: bold; color: #FFD700;">Future Life (PT)</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #CCCCCC;">Welcome to My Future Life Bali Family</p>
+              </div>
+              
+              <!-- WhatsApp Button -->
+              <div style="margin-bottom: 20px;">
+                <a href="https://wa.me/6287744877888" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                  <span style="font-size: 16px;">💬</span>
+                  Connect with us
+                </a>
+              </div>
+              
+              <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #CCCCCC;">Web Version</p>
+              </div>
+            </div>
           </div>
-          <p style="color: #059669; font-weight: bold;">✅ Ready to send contract emails!</p>
-        </div>
+        </body>
+        </html>
       `,
     };
 
