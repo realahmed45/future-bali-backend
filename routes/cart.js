@@ -1,395 +1,273 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const router = express.Router();
-const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const User = require("../models/User");
-const jwt = require("jsonwebtoken");
 
-// USE THE SAME SECRET as in auth.js
-const JWT_SECRET = "your_jwt_secret_here";
+// Use the same JWT secret as auth routes
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_here";
 
-// Helper function to get user from token
-const getUserFromToken = async (req) => {
+// FIXED: Proper authentication middleware
+const authenticateUser = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
+
     if (!token) {
-      return null;
+      return res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
     }
 
-    // Use the same secret
-    const decoded = jwt.verify(token, "your_jwt_secret_here");
+    // Verify the JWT token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log("[Cart Auth] Decoded token:", decoded);
 
-    // Find user by email or phone from the token
-    const user = await User.findOne({
-      $or: [{ email: decoded.email }, { phone: decoded.phone }],
-    });
-
-    return user;
-  } catch (error) {
-    console.error("Error getting user from token:", error);
-    return null;
-  }
-};
-
-// Create new order - REAL DATABASE SAVING
-router.post("/create", async (req, res) => {
-  try {
-    const { cartId, basePackage, selectedAddOns, totalAmount } = req.body;
-
-    console.log("[Orders] Creating order with data:", req.body);
-
-    // Get user from token
-    const user = await getUserFromToken(req);
+    // Find user by ID (new token format) or fallback to old format
+    let user;
+    if (decoded.userId) {
+      user = await User.findById(decoded.userId);
+    } else {
+      // Fallback for old tokens
+      if (decoded.phone && !decoded.email) {
+        user = await User.findOne({
+          phone: decoded.phone,
+          email: { $exists: false },
+        });
+      } else if (decoded.email && !decoded.phone) {
+        user = await User.findOne({
+          email: decoded.email,
+          phone: { $exists: false },
+        });
+      } else if (decoded.phone && decoded.email) {
+        user = await User.findOne({
+          phone: decoded.phone,
+          email: decoded.email,
+        });
+      }
+    }
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Authentication required. Please login first.",
+        message: "Invalid token - user not found",
       });
     }
 
-    console.log("[Orders] Found user:", user.email || user.phone);
+    // Check if token is still valid (not revoked)
+    if (decoded.iat && user.lastTokenIssued) {
+      const tokenIssuedAt = new Date(decoded.iat * 1000);
+      if (tokenIssuedAt < user.lastTokenIssued) {
+        return res.status(401).json({
+          success: false,
+          message: "Token revoked",
+        });
+      }
+    }
 
-    // Create order
-    const order = new Order({
+    // Attach user to request
+    req.user = user;
+    req.tokenData = decoded;
+
+    console.log("[Cart Auth] User authenticated:", user._id);
+    next();
+  } catch (error) {
+    console.error("[Cart Auth] Authentication error:", error);
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+      });
+    } else if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired",
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+    });
+  }
+};
+
+// FIXED: Save cart with proper authentication
+router.post("/save", authenticateUser, async (req, res) => {
+  try {
+    const { basePackage, selectedAddOns, totalAmount } = req.body;
+    const user = req.user; // Now we get user from authentication middleware
+
+    console.log("[Cart] Save request received for user:", user._id);
+    console.log("[Cart] User details:", {
+      id: user._id,
+      email: user.email,
+      phone: user.phone,
+    });
+
+    // Delete existing active carts for this user
+    await Cart.deleteMany({ user: user._id, status: "active" });
+
+    // Create new cart
+    const cart = new Cart({
+      user: user._id,
       userEmail: user.email || null,
       userPhone: user.phone || null,
-      cartId,
       basePackage,
       selectedAddOns,
       totalAmount,
-      orderStatus: "pending",
+      status: "active",
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    const savedOrder = await order.save();
+    const savedCart = await cart.save();
+    console.log("[Cart] Cart saved successfully:", savedCart._id);
 
-    // Update cart status if cartId provided
-    if (cartId) {
-      console.log("[Orders] Updating cart status to ordered");
-      await Cart.findOneAndUpdate(
-        {
-          $or: [{ userEmail: user.email }, { userPhone: user.phone }],
-          status: "active",
-        },
-        { status: "ordered" }
-      );
-    }
-
-    console.log("[Orders] Order created successfully:", savedOrder._id);
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      order: savedOrder,
-      orderId: savedOrder._id,
-      message: "Order created and saved to database",
+      message: "Cart saved successfully to database",
+      cart: savedCart,
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+      },
     });
   } catch (error) {
-    console.error("Error creating order:", error);
+    console.error("Cart save error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create order in database",
+      message: "Failed to save cart to database",
       error: error.message,
     });
   }
 });
-// Add this route to your orders router (after the existing routes)
 
-// Update order with payment details - REAL DATABASE UPDATE
-router.put("/:orderId", async (req, res) => {
+// FIXED: Get active cart with proper authentication
+router.get("/active", authenticateUser, async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const updateData = req.body;
+    const user = req.user; // Now we get user from authentication middleware
 
-    console.log("[Orders] Updating order with payment details:", orderId);
+    console.log("[Cart] Fetching active cart for user:", user._id);
 
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required",
-      });
-    }
+    const cart = await Cart.findOne({
+      user: user._id,
+      status: "active",
+    }).populate("user");
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        ...updateData,
-        updatedAt: new Date(),
+    console.log("[Cart] Found cart:", cart ? cart._id : "none");
+
+    res.status(200).json({
+      success: true,
+      cart: cart || null,
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
       },
+    });
+  } catch (error) {
+    console.error("Error fetching cart:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch cart",
+      error: error.message,
+    });
+  }
+});
+
+// Get all carts for user (optional - for debugging)
+router.get("/all", authenticateUser, async (req, res) => {
+  try {
+    const user = req.user;
+
+    const carts = await Cart.find({ user: user._id })
+      .sort({ createdAt: -1 })
+      .populate("user");
+
+    res.status(200).json({
+      success: true,
+      carts: carts,
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching all carts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch carts",
+      error: error.message,
+    });
+  }
+});
+
+// Update cart status
+router.patch("/:cartId/status", authenticateUser, async (req, res) => {
+  try {
+    const { cartId } = req.params;
+    const { status } = req.body;
+    const user = req.user;
+
+    const cart = await Cart.findOneAndUpdate(
+      { _id: cartId, user: user._id },
+      { status, updatedAt: new Date() },
       { new: true }
     );
 
-    if (!order) {
+    if (!cart) {
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message: "Cart not found",
       });
     }
-
-    console.log("[Orders] Order updated successfully with payment details");
 
     res.status(200).json({
       success: true,
-      order,
-      message: "Order updated successfully with payment information",
+      message: "Cart status updated",
+      cart: cart,
     });
   } catch (error) {
-    console.error("Error updating order:", error);
+    console.error("Error updating cart:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to update order in database",
-      error: error.message,
-    });
-  }
-});
-// Save user information - REAL DATABASE UPDATE
-router.post("/save-user-info", async (req, res) => {
-  try {
-    const { userInfo, orderId } = req.body;
-
-    console.log("[Orders] Saving user info for order:", orderId);
-
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required",
-      });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        userInfo: userInfo,
-        updatedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    console.log("[Orders] User info saved successfully to database");
-
-    res.status(200).json({
-      success: true,
-      order,
-      message: "User information saved to database successfully",
-    });
-  } catch (error) {
-    console.error("Error saving user info:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save user information to database",
+      message: "Failed to update cart",
       error: error.message,
     });
   }
 });
 
-// Save inheritance contacts - REAL DATABASE UPDATE
-router.post("/save-inheritance", async (req, res) => {
+// Delete cart
+router.delete("/:cartId", authenticateUser, async (req, res) => {
   try {
-    const { contacts, orderId } = req.body;
+    const { cartId } = req.params;
+    const user = req.user;
 
-    console.log("[Orders] Saving inheritance contacts for order:", orderId);
+    const cart = await Cart.findOneAndDelete({
+      _id: cartId,
+      user: user._id,
+    });
 
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required",
-      });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        inheritanceContacts: contacts,
-        updatedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!order) {
+    if (!cart) {
       return res.status(404).json({
         success: false,
-        message: "Order not found",
-      });
-    }
-
-    console.log("[Orders] Inheritance contacts saved successfully to database");
-
-    res.status(200).json({
-      success: true,
-      order,
-      message: "Inheritance contacts saved to database successfully",
-    });
-  } catch (error) {
-    console.error("Error saving inheritance:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save inheritance contacts to database",
-      error: error.message,
-    });
-  }
-});
-
-// Save emergency contacts - REAL DATABASE UPDATE
-router.post("/save-emergency", async (req, res) => {
-  try {
-    const { contacts, orderId } = req.body;
-
-    console.log("[Orders] Saving emergency contacts for order:", orderId);
-
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required",
-      });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        emergencyContacts: contacts,
-        updatedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    console.log("[Orders] Emergency contacts saved successfully to database");
-
-    res.status(200).json({
-      success: true,
-      order,
-      message: "Emergency contacts saved to database successfully",
-    });
-  } catch (error) {
-    console.error("Error saving emergency contacts:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save emergency contacts to database",
-      error: error.message,
-    });
-  }
-});
-
-// Finalize order with billing details - REAL DATABASE UPDATE
-router.post("/finalize", async (req, res) => {
-  try {
-    const { orderId, billingDetails } = req.body;
-
-    console.log("[Orders] Finalizing order:", orderId);
-
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required",
-      });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        billingDetails,
-        orderStatus: "confirmed",
-        updatedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    console.log("[Orders] Order finalized successfully in database");
-
-    res.status(200).json({
-      success: true,
-      order,
-      message: "Order finalized and saved to database successfully",
-    });
-  } catch (error) {
-    console.error("Error finalizing order:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to finalize order in database",
-      error: error.message,
-    });
-  }
-});
-
-// Get single order - REAL DATABASE FETCH
-router.get("/:orderId", async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    console.log("[Orders] Fetching order:", orderId);
-
-    const order = await Order.findById(orderId);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found in database",
+        message: "Cart not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      order,
+      message: "Cart deleted successfully",
     });
   } catch (error) {
-    console.error("Error fetching order:", error);
+    console.error("Error deleting cart:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch order from database",
-      error: error.message,
-    });
-  }
-});
-
-// Get user orders - REAL DATABASE FETCH
-router.get("/my-orders", async (req, res) => {
-  try {
-    // Get user from request
-    const user = await getUserFromRequest(req);
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "User authentication required",
-      });
-    }
-
-    // Find orders by either email or phone
-    const orders = await Order.find({
-      $or: [{ userEmail: user.email }, { userPhone: user.phone }],
-    }).sort({
-      createdAt: -1,
-    });
-
-    res.status(200).json({
-      success: true,
-      orders,
-    });
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch orders from database",
+      message: "Failed to delete cart",
       error: error.message,
     });
   }
