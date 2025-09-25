@@ -148,18 +148,71 @@ router.get("/excel-csv", async (req, res) => {
   try {
     console.log("[Dashboard] Generating CSV export...");
 
-    // Get the data (reuse the same logic)
-    const response = await new Promise((resolve, reject) => {
-      router.handle(
-        { method: "GET", url: "/excel-data" },
-        {
-          json: resolve,
-          status: () => ({ json: reject }),
-        }
-      );
-    });
+    // Fetch all orders with populated user data (same logic as excel-data)
+    const orders = await Order.find({})
+      .populate("user", "phone email")
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const excelData = response.data;
+    // Transform data to match Excel columns (same logic as excel-data)
+    const excelData = orders.map((order, index) => {
+      const primaryUser = order.userInfo?.[0] || {};
+      const signDate = order.createdAt
+        ? new Date(order.createdAt).toLocaleDateString()
+        : "";
+      const transferDeadline = order.createdAt
+        ? new Date(
+            new Date(order.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000
+          ).toLocaleDateString()
+        : "";
+
+      const totalAmount = order.totalAmount || 0;
+      const depositAmount = Math.round(totalAmount * 0.9);
+      const totalAddons =
+        order.selectedAddOns?.reduce(
+          (sum, addon) => sum + (addon.price || 0),
+          0
+        ) || 0;
+
+      const contractPhones = [];
+      if (primaryUser.phone) contractPhones.push(primaryUser.phone);
+      if (order.inheritanceContacts?.length > 0) {
+        order.inheritanceContacts.slice(0, 2).forEach((contact) => {
+          if (contact.phoneNumber) contractPhones.push(contact.phoneNumber);
+        });
+      }
+      if (order.emergencyContacts?.length > 0 && contractPhones.length < 3) {
+        order.emergencyContacts
+          .slice(0, 3 - contractPhones.length)
+          .forEach((contact) => {
+            if (contact.phoneNumber) contractPhones.push(contact.phoneNumber);
+          });
+      }
+
+      return {
+        dateOfSign: signDate,
+        depositTransfer: `${depositAmount} (due: ${transferDeadline})`,
+        paidFull: order.paymentStatus === "paid" ? "YES" : "NO",
+        nameOfPerson: primaryUser.name || "N/A",
+        contractPhone1: contractPhones[0] || "",
+        contractPhone2: contractPhones[1] || "",
+        contractPhone3: contractPhones[2] || "",
+        contractNumber: order._id.toString(),
+        package: order.basePackage?.title || "N/A",
+        price: order.basePackage?.price || 0,
+        addOns:
+          order.selectedAddOns
+            ?.map(
+              (addon) =>
+                `${addon.room}${addon.size ? ` (${addon.size})` : ""}: ${
+                  addon.price
+                }`
+            )
+            .join("; ") || "None",
+        totalAddons: totalAddons,
+        totalAll: totalAmount,
+      };
+    });
 
     // Generate CSV headers matching your Excel columns
     const headers = [
