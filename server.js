@@ -70,6 +70,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/contracts", contractRoutes);
 app.use("/api/email", require("./routes/email"));
+app.use("/api/dashboard", require("./routes/dashboard"));
 
 // Test endpoint to verify routes are working
 app.get("/api/test", (req, res) => {
