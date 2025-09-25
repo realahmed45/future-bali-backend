@@ -14,13 +14,9 @@ router.get("/excel-data", async (req, res) => {
     const limit = parseInt(req.query.limit) || 1000; // Default 1000 records
     const skip = (page - 1) * limit;
 
-    // Fetch orders with pagination (no sorting to avoid memory issues)
+    // Fetch orders without populate since user field doesn't exist in Order schema
     const [orders, totalCount] = await Promise.all([
-      Order.find({})
-        .populate("user", "phone email")
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      Order.find({}).skip(skip).limit(limit).lean(),
       Order.countDocuments({}),
     ]);
 
@@ -33,7 +29,7 @@ router.get("/excel-data", async (req, res) => {
     // Sort in JavaScript instead of MongoDB (more memory efficient for smaller result sets)
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Transform data to match Excel columns
+    // Transform data to match Excel columns using actual Order schema fields
     const excelData = orders.map((order, index) => {
       // Extract user info (first person from userInfo array)
       const primaryUser = order.userInfo?.[0] || {};
@@ -60,9 +56,10 @@ router.get("/excel-data", async (req, res) => {
           0
         ) || 0;
 
-      // Get contract phone numbers (up to 3)
+      // Get contract phone numbers (up to 3) - use actual schema fields
       const contractPhones = [];
       if (primaryUser.phone) contractPhones.push(primaryUser.phone);
+      if (order.userPhone) contractPhones.push(order.userPhone);
       if (order.inheritanceContacts?.length > 0) {
         order.inheritanceContacts.slice(0, 2).forEach((contact) => {
           if (contact.phoneNumber) contractPhones.push(contact.phoneNumber);
@@ -75,6 +72,9 @@ router.get("/excel-data", async (req, res) => {
             if (contact.phoneNumber) contractPhones.push(contact.phoneNumber);
           });
       }
+
+      // Remove duplicates and limit to 3
+      const uniquePhones = [...new Set(contractPhones)].slice(0, 3);
 
       return {
         // Row number (Excel row)
@@ -93,13 +93,13 @@ router.get("/excel-data", async (req, res) => {
         nameOfPerson: primaryUser.name || "N/A",
 
         // Column F: Contract phone #1
-        contractPhone1: contractPhones[0] || "",
+        contractPhone1: uniquePhones[0] || "",
 
         // Column G: Contract phone #2
-        contractPhone2: contractPhones[1] || "",
+        contractPhone2: uniquePhones[1] || "",
 
         // Column H: Contract phone #3
-        contractPhone3: contractPhones[2] || "",
+        contractPhone3: uniquePhones[2] || "",
 
         // Column I: Contract number (Order ID)
         contractNumber: order._id.toString(),
@@ -115,7 +115,7 @@ router.get("/excel-data", async (req, res) => {
           order.selectedAddOns
             ?.map(
               (addon) =>
-                `${addon.room}${addon.size ? ` (${addon.size})` : ""}: $${
+                `${addon.room}${addon.size ? ` (${addon.size})` : ""}: ${
                   addon.price
                 }`
             )
