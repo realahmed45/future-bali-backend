@@ -1,12 +1,14 @@
-// Backend Email Service - Optimized with Better Image Display
+// Backend Email Service - Optimized with Better Image Display + Daily CSV Automation
 // File: routes/email.js
 
 const express = require("express");
 const { Resend } = require("resend");
+const cron = require("node-cron");
 const router = express.Router();
+const Order = require("../models/Order");
 
-// Initialize Resend with your API key
-const resend = new Resend("re_ZsYFvHRt_QrxATBMKNvcY2dwM1A4TB2eL");
+// Initialize Resend with updated API key
+const resend = new Resend("re_7tfNGeRF_NruHVonWoav1rmjEgLgPgtw8");
 
 // Send contract PDF email to multiple recipients
 router.post("/send-contract", async (req, res) => {
@@ -432,6 +434,356 @@ router.post("/send-contract", async (req, res) => {
   }
 });
 
+// DAILY CSV EMAIL AUTOMATION SECTION
+
+// Function to generate CSV data
+const generateCSVData = async () => {
+  try {
+    console.log("[Daily CSV] Generating CSV data...");
+
+    // Fetch orders (same logic as dashboard route)
+    const orders = await Order.find({}).lean();
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Complete headers matching dashboard
+    const headers = [
+      "Order ID",
+      "Date Created",
+      "Customer Name",
+      "Customer Email",
+      "Customer Phone",
+      "Customer Address",
+      "Customer Country",
+      "Customer DOB",
+      "Customer Passport",
+      "Package Title",
+      "Package Price",
+      "Add-ons Details",
+      "Add-ons Total",
+      "Total Amount",
+      "Payment Status",
+      "Order Status",
+      "Deposit Amount (90%)",
+      "Remaining Amount (10%)",
+      "Payment Deadline",
+      "Inheritance Contacts",
+      "Emergency Contacts",
+      "Billing Name",
+      "Billing Email",
+      "Billing Phone",
+      "Billing Country",
+      "Billing Address",
+    ];
+
+    const csvRows = [
+      headers.join(","),
+      ...orders.map((order) => {
+        // Primary customer info
+        const primaryUser = order.userInfo?.[0] || {};
+        const customerName = primaryUser.name || "N/A";
+        const customerEmail = primaryUser.email || order.userEmail || "N/A";
+        const customerPhone = primaryUser.phone || order.userPhone || "N/A";
+        const customerAddress = primaryUser.address || "N/A";
+        const customerCountry = primaryUser.country || "N/A";
+        const customerDOB = primaryUser.dob || "N/A";
+        const customerPassport = primaryUser.passportId || "N/A";
+
+        // Package info
+        const packageTitle = order.basePackage?.title || "N/A";
+        const packagePrice = order.basePackage?.price || 0;
+
+        // Add-ons info
+        const addOnsDetails =
+          order.selectedAddOns
+            ?.map(
+              (addon) =>
+                `${addon.room}${addon.size ? ` (${addon.size})` : ""}: $${
+                  addon.price
+                }`
+            )
+            .join(" | ") || "None";
+        const addOnsTotal =
+          order.selectedAddOns?.reduce(
+            (sum, addon) => sum + (addon.price || 0),
+            0
+          ) || 0;
+
+        // Financial calculations
+        const totalAmount = order.totalAmount || 0;
+        const depositAmount = Math.round(totalAmount * 0.9);
+        const remainingAmount = totalAmount - depositAmount;
+
+        // Dates
+        const dateCreated = order.createdAt
+          ? new Date(order.createdAt).toLocaleDateString()
+          : "";
+        const paymentDeadline = order.createdAt
+          ? new Date(
+              new Date(order.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000
+            ).toLocaleDateString()
+          : "";
+
+        // Inheritance contacts
+        const inheritanceContacts =
+          order.inheritanceContacts
+            ?.map(
+              (contact) =>
+                `${contact.name} (${contact.phoneNumber})${
+                  contact.percentage ? ` - ${contact.percentage}%` : ""
+                }`
+            )
+            .join(" | ") || "None";
+
+        // Emergency contacts
+        const emergencyContacts =
+          order.emergencyContacts
+            ?.map((contact) => `${contact.name} (${contact.phoneNumber})`)
+            .join(" | ") || "None";
+
+        // Billing info
+        const billingName = order.billingDetails
+          ? `${order.billingDetails.firstName || ""} ${
+              order.billingDetails.lastName || ""
+            }`.trim()
+          : "N/A";
+        const billingEmail = order.billingDetails?.email || "N/A";
+        const billingPhone = order.billingDetails?.phone || "N/A";
+        const billingCountry = order.billingDetails?.country || "N/A";
+        const billingAddress = order.billingDetails?.address || "N/A";
+
+        return [
+          `"${order._id}"`,
+          `"${dateCreated}"`,
+          `"${customerName}"`,
+          `"${customerEmail}"`,
+          `"${customerPhone}"`,
+          `"${customerAddress}"`,
+          `"${customerCountry}"`,
+          `"${customerDOB}"`,
+          `"${customerPassport}"`,
+          `"${packageTitle}"`,
+          packagePrice,
+          `"${addOnsDetails}"`,
+          addOnsTotal,
+          totalAmount,
+          `"${order.paymentStatus || "pending"}"`,
+          `"${order.orderStatus || "pending"}"`,
+          depositAmount,
+          remainingAmount,
+          `"${paymentDeadline}"`,
+          `"${inheritanceContacts}"`,
+          `"${emergencyContacts}"`,
+          `"${billingName}"`,
+          `"${billingEmail}"`,
+          `"${billingPhone}"`,
+          `"${billingCountry}"`,
+          `"${billingAddress}"`,
+        ].join(",");
+      }),
+    ];
+
+    const csvContent = csvRows.join("\n");
+
+    console.log(`[Daily CSV] Generated CSV with ${orders.length} orders`);
+    return {
+      csvContent,
+      ordersCount: orders.length,
+      totalRevenue: orders.reduce(
+        (sum, order) => sum + (order.totalAmount || 0),
+        0
+      ),
+    };
+  } catch (error) {
+    console.error("[Daily CSV] Error generating CSV:", error);
+    throw error;
+  }
+};
+
+// Function to send daily CSV email
+const sendDailyCSV = async () => {
+  try {
+    console.log("[Daily CSV] Starting daily CSV email generation...");
+
+    // Generate CSV data
+    const { csvContent, ordersCount, totalRevenue } = await generateCSVData();
+
+    // Create filename with today's date
+    const today = new Date();
+    const dateString = today.toISOString().split("T")[0]; // YYYY-MM-DD
+    const filename = `Villa_Orders_Daily_Report_${dateString}.csv`;
+
+    // Convert CSV to buffer
+    const csvBuffer = Buffer.from(csvContent, "utf8");
+
+    // Prepare email
+    const emailData = {
+      from: "My Future Life Bali System <info@futurelifebali.com>",
+      to: ["futurelifebali@gmail.com", "bassam.agi@gmail.com"],
+      subject: `Daily Orders Report - ${today.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Daily Orders Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; background: white; }
+            .header { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 30px; text-align: center; color: white; }
+            .content { padding: 30px; }
+            .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+            .stat-card { background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #7c3aed; }
+            .stat-number { font-size: 32px; font-weight: bold; color: #7c3aed; margin-bottom: 8px; }
+            .stat-label { color: #6b7280; font-size: 14px; }
+            .footer { background: #2D2D2D; padding: 20px; text-align: center; color: white; }
+            @media only screen and (max-width: 600px) {
+              .stats-grid { grid-template-columns: 1fr; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+              <h1 style="margin: 0; font-size: 28px;">Daily Orders Report</h1>
+              <p style="margin: 10px 0 0 0; opacity: 0.9;">${today.toLocaleDateString(
+                "en-US",
+                {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }
+              )}</p>
+            </div>
+
+            <!-- Main Content -->
+            <div class="content">
+              <p style="color: #374151; line-height: 1.6; margin-bottom: 30px;">
+                Here's your daily orders summary. The complete CSV report is attached for detailed analysis.
+              </p>
+
+              <!-- Statistics -->
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-number">${ordersCount}</div>
+                  <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">$${totalRevenue.toLocaleString()}</div>
+                  <div class="stat-label">Total Revenue</div>
+                </div>
+              </div>
+              <!-- Report Info -->
+              <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 30px 0;">
+                <h3 style="margin-top: 0; color: #92400e;">Report Details</h3>
+                <ul style="color: #92400e; margin: 0; padding-left: 20px;">
+                  <li>Complete customer information</li>
+                  <li>Package and add-ons details</li>
+                  <li>Payment status and amounts</li>
+                  <li>Contact information</li>
+                  <li>Generated: ${today.toLocaleString()}</li>
+                </ul>
+              </div>
+
+              <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
+                This report is automatically generated daily at 1:00 PM
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+              <p style="margin: 0; font-size: 14px;">
+                Future Life (PT) - Automated Daily Report System
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      attachments: [
+        {
+          filename: filename,
+          content: csvBuffer,
+          type: "text/csv",
+        },
+      ],
+    };
+
+    // Send email
+    const result = await resend.emails.send(emailData);
+
+    console.log("[Daily CSV] Email sent successfully:", result.id);
+    console.log(
+      `[Daily CSV] Report sent with ${ordersCount} orders, $${totalRevenue} total revenue`
+    );
+
+    return {
+      success: true,
+      messageId: result.id,
+      ordersCount,
+      totalRevenue,
+      filename,
+    };
+  } catch (error) {
+    console.error("[Daily CSV] Error sending daily report:", error);
+    throw error;
+  }
+};
+
+// Schedule daily CSV email at 1:00 PM (13:00) every day
+// Cron format: second minute hour day month dayOfWeek
+const scheduleDaily = () => {
+  console.log("[Daily CSV] Scheduling daily CSV email for 1:00 PM...");
+
+  // Schedule for 1:00 PM every day (0 0 13 * * *)
+  cron.schedule(
+    "0 0 13 * * *",
+    async () => {
+      console.log("[Daily CSV] Executing daily CSV email task...");
+      try {
+        await sendDailyCSV();
+      } catch (error) {
+        console.error("[Daily CSV] Daily task failed:", error);
+      }
+    },
+    {
+      scheduled: true,
+      timezone: "Asia/Jakarta", // Bali timezone
+    }
+  );
+
+  console.log("[Daily CSV] Daily email scheduled for 1:00 PM Bali time");
+};
+
+// Manual trigger endpoint (for testing)
+router.post("/send-daily-csv", async (req, res) => {
+  try {
+    console.log("[Daily CSV] Manual trigger requested...");
+
+    const result = await sendDailyCSV();
+
+    res.status(200).json({
+      success: true,
+      message: "Daily CSV report sent successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("[Daily CSV] Manual trigger failed:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to send daily report",
+      error: error.message,
+    });
+  }
+});
+
 // Test Resend email configuration
 router.post("/test-resend", async (req, res) => {
   try {
@@ -591,5 +943,8 @@ router.post("/test-resend", async (req, res) => {
     });
   }
 });
+
+// Initialize the scheduling when the server starts
+scheduleDaily();
 
 module.exports = router;
