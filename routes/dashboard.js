@@ -4,18 +4,34 @@ const router = express.Router();
 const Order = require("../models/Order");
 const User = require("../models/User");
 
-// Excel Dashboard Data Endpoint
+// Excel Dashboard Data Endpoint with pagination
 router.get("/excel-data", async (req, res) => {
   try {
     console.log("[Dashboard] Fetching Excel dashboard data...");
 
-    // Fetch all orders with populated user data
-    const orders = await Order.find({})
-      .populate("user", "phone email")
-      .sort({ createdAt: -1 })
-      .lean();
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 1000; // Default 1000 records
+    const skip = (page - 1) * limit;
 
-    console.log(`[Dashboard] Found ${orders.length} orders`);
+    // Fetch orders with pagination (no sorting to avoid memory issues)
+    const [orders, totalCount] = await Promise.all([
+      Order.find({})
+        .populate("user", "phone email")
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments({}),
+    ]);
+
+    console.log(
+      `[Dashboard] Found ${orders.length} orders (page ${page} of ${Math.ceil(
+        totalCount / limit
+      )})`
+    );
+
+    // Sort in JavaScript instead of MongoDB (more memory efficient for smaller result sets)
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // Transform data to match Excel columns
     const excelData = orders.map((order, index) => {
