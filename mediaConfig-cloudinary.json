@@ -1,0 +1,61 @@
+{
+  "adventure": {
+    "videos": {
+      "heroVideo": "https://res.cloudinary.com/dgbxypivn/video/upload/v1758704847/fture_life_hero_video_web_244fps_and_720p_wmmcf6.mp4",
+      "heroVideoMobile": "https://res.cloudinary.com/dgbxypivn/video/upload/v1758705234/mobile_version_720p_24_fps_qv4lbc.mp4"
+    },
+    "images": {
+      "homeImage": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409255/home1_vgb82u.png",
+      "mainImage": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409254/sunset2_dob8tr.jpg",
+      "fallbackImage": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409246/Future_life_img_yyj3dv.png",
+      "sunsetImage": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409252/sunset1_xrgdrz.jpg",
+      "storyImages": [
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409216/adventure1_c1zbjv.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409216/adventure2_jvdsw1.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409217/adventure3_nceokv.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409218/adventure4_jujjxh.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409218/adventure5_ykafco.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409218/adventure6_vgoyyk.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409219/adventure7_snkz6h.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409218/adventure8_ae8eli.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409219/adventure9_quzej0.jpg"
+      ],
+      "galleryImages": [
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409263/2_tyrh1t.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409263/2_tyrh1t.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409268/3_gwsyg0.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409262/5_njnlqm.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409264/4_jv6qby.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409222/Frame_10_itmhvq.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409220/11_w34rbk.png",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409213/12_g8o02g.jpg"
+      ],
+      "blogImages": [
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409219/blog1_oppunv.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409220/blog5_ozx8ew.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409221/blog6_cdnx1n.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409220/blog3_tuwhv5.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409221/blog4_ndm8y7.jpg",
+        "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409219/blog2_msepdz.jpg"
+      ],
+      "packageImages": {
+        "package1": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409263/2_tyrh1t.png",
+        "package2": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409254/two_um2cyj.png",
+        "package3": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409264/4_jv6qby.png"
+      }
+    }
+  },
+  "nuanu": {
+    "images": {
+      "frame1": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409237/Frame1_xmtbtb.png",
+      "frameSmall": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409230/Framesmall_p9oyk1.png",
+      "frame3": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409231/Frame3_aetmum.png",
+      "frame4": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409226/Frame4_hd179x.jpg",
+      "frame5": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409233/Frame5_nsects.png",
+      "frame7": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409232/Frame7_c9ac3t.png",
+      "frame8": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409222/Frame_8_tpj9xn.jpg",
+      "frame9": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409246/Frame_9_mdpyo9.png",
+      "frame10": "https://res.cloudinary.com/dgbxypivn/image/upload/v1759409222/Frame_10_itmhvq.png"
+    }
+  }
+}
