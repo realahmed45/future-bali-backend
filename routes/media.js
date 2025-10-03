@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs").promises;
 const path = require("path");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Config file now lives in backend
 const CONFIG_FILE_PATH = path.join(__dirname, "../config/mediaConfig.json");
@@ -76,4 +78,46 @@ router.get("/download-config", async (req, res) => {
   }
 });
 
+// Proxy upload endpoint
+router.post(
+  "/upload-to-cloudinary",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const cloudinary = require("cloudinary").v2;
+
+      cloudinary.config({
+        cloud_name: "dgbxypivn",
+        api_key: "413778576816479", // Get from dashboard
+        api_secret: "YJZUtSY7DmLekfFMBNs2ih02y8I", // Get from dashboard
+      });
+
+      // Upload to Cloudinary
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "auto",
+            chunk_size: 6000000, // 6MB chunks
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+
+      res.json({
+        success: true,
+        secure_url: result.secure_url,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
 module.exports = router;

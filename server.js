@@ -19,10 +19,7 @@ app.use(cors()); // This allows all origins
 
 // Serve static files from frontend assets folder
 // Serve images from backend's public folder
-app.use(
-  "/media-preview/images",
-  express.static(path.join(__dirname, "public/assets"))
-);
+
 // Other Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
