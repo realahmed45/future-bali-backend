@@ -7,6 +7,7 @@ const authRoutes = require("./routes/auth");
 const cartRoutes = require("./routes/cart");
 const orderRoutes = require("./routes/orders");
 const contractRoutes = require("./routes/contracts");
+const textRoutes = require("./routes/textRoutes");
 
 const app = express();
 const PORT = 5000; // Hardcoded port
@@ -75,6 +76,7 @@ app.use("/api/contracts", contractRoutes);
 app.use("/api/email", require("./routes/email"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/media", require("./routes/media"));
+app.use("/api/text", textRoutes);
 
 // Test endpoint to verify routes are working
 app.get("/api/test", (req, res) => {
